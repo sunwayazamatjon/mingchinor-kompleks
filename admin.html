@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mingchinor Kafe | Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .admin-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .admin-title i {
+            font-size: 28px;
+            color: var(--primary-color);
+        }
+        .logout-btn {
+            padding: 10px 24px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .add-item-card, .edit-item-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        .edit-item-card {
+            background: linear-gradient(135deg, #fef7e8, #fff);
+            border-left: 4px solid var(--primary-color);
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-group label {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(192, 82, 42, 0.1);
+        }
+        .image-preview {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-top: 8px;
+        }
+        .btn-add-item, .btn-update-item {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-update-item {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+        .search-section {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .search-section input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            font-size: 14px;
+            min-width: 200px;
+        }
+        .search-section select {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            font-size: 14px;
+            background: white;
+        }
+        .items-table {
+            background: white;
+            border-radius: 20px;
+            overflow-x: auto;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        .table-header {
+            display: grid;
+            grid-template-columns: 60px 80px 1.5fr 1fr 100px 100px 120px;
+            background: var(--bg-secondary);
+            padding: 16px;
+            font-weight: 700;
+            border-bottom: 1px solid var(--border-color);
+            gap: 8px;
+        }
+        .table-row {
+            display: grid;
+            grid-template-columns: 60px 80px 1.5fr 1fr 100px 100px 120px;
+            padding: 12px 16px;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            transition: background 0.2s;
+            gap: 8px;
+        }
+        .table-row:hover {
+            background: var(--bg-secondary);
+            cursor: pointer;
+        }
+        .table-row.unavailable {
+            opacity: 0.6;
+            background: #fef2f2;
+        }
+        .item-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 12px;
+            background: #f0f0f0;
+        }
+        .item-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-available {
+            background: #10b98120;
+            color: #10b981;
+        }
+        .status-unavailable {
+            background: #ef444420;
+            color: #ef4444;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .btn-edit, .btn-toggle, .btn-delete {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-edit {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-edit:hover {
+            background: #2563eb;
+        }
+        .btn-toggle {
+            background: var(--primary-color);
+            color: white;
+        }
+        .btn-toggle:hover {
+            background: #a0411e;
+        }
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+        .selected-item-info {
+            background: #fef3e8;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .selected-item-info img {
+            width: 50px;
+            height: 50px;
+            border-radius: 10px;
+        }
+        .qr-code-section {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-top: 30px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        @media (max-width: 900px) {
+            .table-header, .table-row {
+                grid-template-columns: 50px 60px 1.5fr 80px 70px;
+                gap: 6px;
+            }
+            .table-header :nth-child(4), .table-row :nth-child(4),
+            .table-header :nth-child(5), .table-row :nth-child(5) {
+                display: none;
+            }
+        }
+        @media (max-width: 600px) {
+            .table-header, .table-row {
+                grid-template-columns: 40px 50px 1fr 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-card">
+            <div class="login-icon">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2>Admin Panel</h2>
+            <p>Taomlarni boshqarish uchun parol kiriting</p>
+            <input type="password" id="adminPassword" placeholder="Parol" class="login-input">
+            <button onclick="checkAdminLogin()" class="btn-login">Kirish</button>
+            <div id="loginError" class="error-message"></div>
+        </div>
+    </div>
+
+    <div class="admin-container" id="adminContent" style="display: none;">
+        <div class="admin-header">
+            <div class="admin-title">
+                <i class="fas fa-crown"></i>
+                <h2>Mingchinor Kafe - Admin Panel</h2>
+            </div>
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> Chiqish
+            </button>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <input type="text" id="searchItemInput" placeholder="🔍 Taom nomi yoki ID bo'yicha qidirish...">
+            <select id="categoryFilter">
+                <option value="all">Barcha kategoriyalar</option>
+                <option value="🍜 Birinchi taomlar">🍜 Birinchi taomlar</option>
+                <option value="🍽️ Ikkinchi taomlar">🍽️ Ikkinchi taomlar</option>
+                <option value="🫓 Non va sneklar">🫓 Non va sneklar</option>
+                <option value="🧃 Ichimliklar">🧃 Ichimliklar</option>
+                <option value="🍰 Shirinliklar">🍰 Shirinliklar</option>
+            </select>
+        </div>
+
+        <!-- Add New Item Form -->
+        <div class="add-item-card">
+            <h3><i class="fas fa-plus-circle"></i> Yangi taom qo'shish</h3>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Taom nomi *</label>
+                    <input type="text" id="itemName" placeholder="Masalan: Osh">
+                </div>
+                <div class="form-group">
+                    <label>Emoji</label>
+                    <input type="text" id="itemEmoji" placeholder="🍚">
+                </div>
+                <div class="form-group">
+                    <label>Narx (so'm) *</label>
+                    <input type="number" id="itemPrice" placeholder="35000">
+                </div>
+                <div class="form-group">
+                    <label>Kategoriya *</label>
+                    <select id="itemCategory">
+                        <option value="🍜 Birinchi taomlar">🍜 Birinchi taomlar</option>
+                        <option value="🍽️ Ikkinchi taomlar">🍽️ Ikkinchi taomlar</option>
+                        <option value="🫓 Non va sneklar">🫓 Non va sneklar</option>
+                        <option value="🧃 Ichimliklar">🧃 Ichimliklar</option>
+                        <option value="🍰 Shirinliklar">🍰 Shirinliklar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tavsif</label>
+                    <textarea id="itemDesc" rows="2" placeholder="Qisqacha tavsif..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Rasm (URL yoki fayl)</label>
+                    <input type="file" id="itemImageFile" accept="image/*">
+                    <input type="text" id="itemImageUrl" placeholder="https://... yoki fayl tanlang" style="margin-top: 8px;">
+                </div>
+            </div>
+            <button class="btn-add-item" onclick="addNewItem()">
+                <i class="fas fa-save"></i> Taomni qo'shish
+            </button>
+        </div>
+
+        <!-- Edit Item Section (Tahrirlash) -->
+        <div class="edit-item-card" id="editItemCard" style="display: none;">
+            <h3><i class="fas fa-edit"></i> Taomni tahrirlash</h3>
+            <div id="selectedItemInfo" class="selected-item-info"></div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Taom nomi</label>
+                    <input type="text" id="editItemName">
+                </div>
+                <div class="form-group">
+                    <label>Emoji</label>
+                    <input type="text" id="editItemEmoji">
+                </div>
+                <div class="form-group">
+                    <label>Narx (so'm)</label>
+                    <input type="number" id="editItemPrice">
+                </div>
+                <div class="form-group">
+                    <label>Kategoriya</label>
+                    <select id="editItemCategory">
+                        <option value="🍜 Birinchi taomlar">🍜 Birinchi taomlar</option>
+                        <option value="🍽️ Ikkinchi taomlar">🍽️ Ikkinchi taomlar</option>
+                        <option value="🫓 Non va sneklar">🫓 Non va sneklar</option>
+                        <option value="🧃 Ichimliklar">🧃 Ichimliklar</option>
+                        <option value="🍰 Shirinliklar">🍰 Shirinliklar</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tavsif</label>
+                    <textarea id="editItemDesc" rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Rasm</label>
+                    <input type="file" id="editItemImageFile" accept="image/*">
+                    <input type="text" id="editItemImageUrl" placeholder="https://...">
+                    <img id="editImagePreview" class="image-preview" style="display: none;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="btn-update-item" onclick="updateSelectedItem()">
+                    <i class="fas fa-save"></i> Saqlash
+                </button>
+                <button class="btn-toggle" onclick="cancelEdit()" style="background: #6b7280;">
+                    <i class="fas fa-times"></i> Bekor qilish
+                </button>
+            </div>
+        </div>
+
+        <!-- Items List -->
+        <div class="items-table">
+            <div class="table-header">
+                <div>ID</div>
+                <div>Rasm</div>
+                <div>Taom nomi</div>
+                <div>Kategoriya</div>
+                <div>Narx</div>
+                <div>Holat</div>
+                <div>Amallar</div>
+            </div>
+            <div id="itemsListContainer"></div>
+        </div>
+
+        <!-- QR Code Section -->
+        <div class="qr-code-section">
+            <h4><i class="fas fa-qrcode"></i> Menyu QR kodi</h4>
+            <p>Mijozlar skaner qilishi uchun:</p>
+            <div id="qrCodeDisplay"></div>
+            <button onclick="downloadQRCode()" class="btn-add-item" style="margin-top: 16px; background: #3b82f6;">
+                <i class="fas fa-download"></i> QR kodni yuklab olish
+            </button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2-fix@0.0.1/qrcode.min.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

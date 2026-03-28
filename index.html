@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mingchinor Kafe | Milliy taomlar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-wrapper">
+                    <div class="logo-icon">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Mingchinor</h1>
+                        <p>Milliy taomlar</p>
+                    </div>
+                </div>
+                <button class="cart-icon-btn" id="cartIconBtn">
+                    <i class="fas fa-shopping-basket"></i>
+                    <span class="cart-badge" id="cartBadge">0</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Category Tabs -->
+        <div class="categories-wrapper">
+            <div class="categories-container" id="categoriesContainer">
+                <button class="category-chip active" data-category="all">
+                    <i class="fas fa-border-all"></i> Barchasi
+                </button>
+            </div>
+        </div>
+
+        <!-- Menu Items -->
+        <main class="menu-container" id="menuContainer">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-pulse"></i> Menyu yuklanmoqda...
+            </div>
+        </main>
+
+        <!-- Cart Sidebar (Overlay) -->
+        <div class="cart-overlay" id="cartOverlay">
+            <div class="cart-sidebar">
+                <div class="cart-header">
+                    <h3><i class="fas fa-shopping-basket"></i> Savatcha</h3>
+                    <button class="close-cart" id="closeCartBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="cart-items" id="cartItemsList">
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p>Savat hozircha bo'sh</p>
+                    </div>
+                </div>
+                <div class="cart-footer">
+                    <div class="cart-total">
+                        <span>Jami:</span>
+                        <strong id="cartTotalAmount">0 so'm</strong>
+                    </div>
+                    <button class="btn-order" id="orderBtn">
+                        <i class="fas fa-check-circle"></i> Buyurtma berish
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Scanner Modal -->
+        <div class="modal-overlay" id="qrModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3><i class="fas fa-qrcode"></i> QR kodni skanerlang</h3>
+                    <button class="close-modal" id="closeQrModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="qr-reader" style="width: 100%;"></div>
+                    <div id="qr-result" class="qr-result"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Success Modal -->
+        <div class="modal-overlay" id="successModal">
+            <div class="modal-container success-modal">
+                <div class="modal-body text-center">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <h3>Buyurtma qabul qilindi!</h3>
+                    <p>Tez orada ofitsiant siz bilan bog'lanadi. Rahmat!</p>
+                    <button class="btn-primary" id="closeSuccessBtn">Yopish</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast-notification" id="toast"></div>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
