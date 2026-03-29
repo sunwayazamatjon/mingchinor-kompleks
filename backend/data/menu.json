@@ -1,0 +1,182 @@
+[
+  {
+    "id": 1,
+    "emoji": "🥣",
+    "name": "Mastava",
+    "desc": "Qo'zichoq go'shti, sabzavotlar",
+    "price": 28000,
+    "category": "🍜 Birinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 2,
+    "emoji": "🍲",
+    "name": "Shurva",
+    "desc": "Qo'y go'shti, karam, sabzi",
+    "price": 25000,
+    "category": "🍜 Birinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 3,
+    "emoji": "🥘",
+    "name": "Lagman",
+    "desc": "El noodles, go'sht, sabzavot",
+    "price": 32000,
+    "category": "🍜 Birinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 4,
+    "emoji": "🫕",
+    "name": "Moshxo'rda",
+    "desc": "Mosh, guruch, yog'",
+    "price": 22000,
+    "category": "🍜 Birinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 5,
+    "emoji": "🍚",
+    "name": "Osh (Palov)",
+    "desc": "Qo'zichoq go'shti, sabzi, guruch",
+    "price": 38000,
+    "category": "🍽️ Ikkinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 6,
+    "emoji": "🥩",
+    "name": "Kabob",
+    "desc": "Qo'y go'shti, zira, piyoz",
+    "price": 45000,
+    "category": "🍽️ Ikkinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 7,
+    "emoji": "🫔",
+    "name": "Dimlama",
+    "desc": "Go'sht, kartoshka, sabzavotlar",
+    "price": 35000,
+    "category": "🍽️ Ikkinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 8,
+    "emoji": "🍗",
+    "name": "Tovuq qovurma",
+    "desc": "Basmati guruch bilan",
+    "price": 40000,
+    "category": "🍽️ Ikkinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 9,
+    "emoji": "🥗",
+    "name": "Achichuk salat",
+    "desc": "Pomidor, bodring, piyoz, ko'k",
+    "price": 15000,
+    "category": "🍽️ Ikkinchi taomlar",
+    "available": true
+  },
+  {
+    "id": 10,
+    "emoji": "🫓",
+    "name": "Patir non",
+    "desc": "Tandirda pishirilgan",
+    "price": 8000,
+    "category": "🫓 Non va sneklar",
+    "available": true
+  },
+  {
+    "id": 11,
+    "emoji": "🥙",
+    "name": "Somsa",
+    "desc": "Go'shtli, yangi pishirilgan",
+    "price": 12000,
+    "category": "🫓 Non va sneklar",
+    "available": true
+  },
+  {
+    "id": 12,
+    "emoji": "🥟",
+    "name": "Manti",
+    "desc": "Qo'y go'shti bilan (6 dona)",
+    "price": 30000,
+    "category": "🫓 Non va sneklar",
+    "available": true
+  },
+  {
+    "id": 13,
+    "emoji": "🍵",
+    "name": "Ko'k choy",
+    "desc": "Chinni piyolada",
+    "price": 8000,
+    "category": "🧃 Ichimliklar",
+    "available": true
+  },
+  {
+    "id": 14,
+    "emoji": "☕",
+    "name": "Qora choy",
+    "desc": "Limon bilan",
+    "price": 8000,
+    "category": "🧃 Ichimliklar",
+    "available": true
+  },
+  {
+    "id": 15,
+    "emoji": "🧃",
+    "name": "Sharbat",
+    "desc": "Mavsumiy mevalar",
+    "price": 18000,
+    "category": "🧃 Ichimliklar",
+    "available": true
+  },
+  {
+    "id": 16,
+    "emoji": "🥛",
+    "name": "Ayron",
+    "desc": "Yangi, sovuq",
+    "price": 12000,
+    "category": "🧃 Ichimliklar",
+    "available": true
+  },
+  {
+    "id": 17,
+    "emoji": "💧",
+    "name": "Mineral suv",
+    "desc": "Gaz'li / gaz'siz (0.5L)",
+    "price": 7000,
+    "category": "🧃 Ichimliklar",
+    "available": true
+  },
+  {
+    "id": 18,
+    "emoji": "🍯",
+    "name": "Halva",
+    "desc": "An'anaviy, yong'oq bilan",
+    "price": 20000,
+    "category": "🍰 Shirinliklar",
+    "available": true
+  },
+  {
+    "id": 19,
+    "emoji": "🍮",
+    "name": "Murabbo",
+    "desc": "O'rik murabbo, qaymoq",
+    "price": 15000,
+    "category": "🍰 Shirinliklar",
+    "available": true
+  },
+  {
+    "id": 20,
+    "emoji": "🍩",
+    "name": "Pishiriqlar",
+    "desc": "Kunlik assortment",
+    "price": 14000,
+    "category": "🍰 Shirinliklar",
+    "available": true
+  }
+]

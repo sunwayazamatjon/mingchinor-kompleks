@@ -1,0 +1,14 @@
+{
+  "name": "mingchinor-print-agent",
+  "version": "1.0.0",
+  "description": "Mahalliy tarmoqdagi printerlarni Vercel buluti bilan ulovchi vosita",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "chalk": "^4.1.2",
+    "esc-pos-encoder": "*"
+  }
+}

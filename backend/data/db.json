@@ -1,0 +1,93 @@
+{
+  "pending_orders": [],
+  "printing_queue": [],
+  "all_orders": {
+    "6908fd8c-728a-4446-9491-17713d5cce5c": {
+      "id": "6908fd8c-728a-4446-9491-17713d5cce5c",
+      "tableNumber": 5,
+      "items": [
+        {
+          "id": 10,
+          "emoji": "🫓",
+          "name": "Patir non",
+          "cost": 0,
+          "price": 8000,
+          "qty": 1,
+          "category": "🫓 Non va sneklar"
+        },
+        {
+          "id": 11,
+          "emoji": "🥙",
+          "name": "Somsa",
+          "cost": 0,
+          "price": 12000,
+          "qty": 1,
+          "category": "🫓 Non va sneklar"
+        },
+        {
+          "id": 12,
+          "emoji": "🥟",
+          "name": "Manti",
+          "cost": 0,
+          "price": 30000,
+          "qty": 1,
+          "category": "🫓 Non va sneklar"
+        }
+      ],
+      "totalAmount": 55000,
+      "status": "printed",
+      "createdAt": "2026-03-29T10:56:31.764Z",
+      "confirmedAt": "2026-03-29T11:08:58.976Z",
+      "printedAt": "2026-03-29T11:09:08.992Z"
+    },
+    "93572b8a-9c0b-44b7-820d-f357b5e01a4b": {
+      "id": "93572b8a-9c0b-44b7-820d-f357b5e01a4b",
+      "tableNumber": 5,
+      "items": [
+        {
+          "id": 13,
+          "emoji": "🍵",
+          "name": "Ko'k choy",
+          "cost": 0,
+          "price": 8000,
+          "qty": 1,
+          "category": "🧃 Ichimliklar"
+        },
+        {
+          "id": 14,
+          "emoji": "☕",
+          "name": "Qora choy",
+          "cost": 0,
+          "price": 8000,
+          "qty": 1,
+          "category": "🧃 Ichimliklar"
+        },
+        {
+          "id": 15,
+          "emoji": "🧃",
+          "name": "Sharbat",
+          "cost": 0,
+          "price": 18000,
+          "qty": 1,
+          "category": "🧃 Ichimliklar"
+        }
+      ],
+      "totalAmount": 44000,
+      "status": "printed",
+      "createdAt": "2026-03-29T11:08:43.888Z",
+      "confirmedAt": "2026-03-29T11:08:52.294Z",
+      "printedAt": "2026-03-29T11:09:02.347Z"
+    }
+  },
+  "system_config": {
+    "service_fee": 5000
+  },
+  "waiter_calls": [
+    {
+      "tableNumber": 5,
+      "numberOfPeople": 2,
+      "calledAt": "2026-03-29T11:13:49.989Z",
+      "status": "pending"
+    }
+  ]
+}
