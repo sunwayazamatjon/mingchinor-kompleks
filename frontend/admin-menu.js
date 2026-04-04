@@ -4,6 +4,7 @@ const ADMIN_PASSWORD = "mingchinor123";
 
 let menuData = [];
 let waiterData = [];
+let menuCategories = [];
 let selectedEditId = null;
 
 // ============ TABLAR ============
@@ -60,7 +61,9 @@ function logout() {
 async function loadMenuData() {
     try {
         const response = await fetch(`${API_URL}/api/menu`);
-        menuData = await response.json();
+        menuData = (await response.json()).map(item => ({ ...item, category: normalizeCategory(item.category) }));
+        menuCategories = getUniqueCategories();
+        updateCategoryControls();
         renderItemsList();
     } catch (err) {
         console.error('Menu yuklashda xatolik:', err);
@@ -93,6 +96,83 @@ async function saveMenuToAPI() {
 // ============ UI FUNCTIONS ============
 function formatPrice(price) {
     return price.toLocaleString('uz-UZ') + " so'm";
+}
+
+function normalizeCategory(category) {
+    return String(category || '').trim() || 'Boshqa';
+}
+
+function getUniqueCategories() {
+    return [...new Set(menuData.map(item => normalizeCategory(item.category)).filter(Boolean))];
+}
+
+function updateCategoryControls() {
+    menuCategories = getUniqueCategories();
+    if (menuCategories.length === 0) {
+        menuCategories = ['Milliy taomlar', 'Kaboblar', 'Suv va Shirinliklar'];
+    }
+
+    const categoryFilter = document.getElementById('categoryFilter');
+    if (categoryFilter) {
+        categoryFilter.innerHTML = `<option value="all">Barcha kategoriyalar</option>${menuCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}`;
+    }
+
+    const itemCategory = document.getElementById('itemCategory');
+    const editItemCategory = document.getElementById('editItemCategory');
+    const htmlOptions = menuCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    if (itemCategory) itemCategory.innerHTML = htmlOptions;
+    if (editItemCategory) editItemCategory.innerHTML = htmlOptions;
+
+    renderCategoryManager();
+}
+
+function renderCategoryManager() {
+    const container = document.getElementById('categoryManagerList');
+    if (!container) return;
+
+    if (menuCategories.length === 0) {
+        container.innerHTML = '<div class="empty-cart" style="padding: 20px; text-align: center;">Hozircha kategoriya yo‘q</div>';
+        return;
+    }
+
+    container.innerHTML = menuCategories.map(cat => `
+        <div class="category-row" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:10px; margin-bottom:8px;">
+            <span>${cat}</span>
+            <button class="btn-delete" onclick="removeCategory('${cat.replace(/'/g, "\\'")}')">O'chirish</button>
+        </div>
+    `).join('');
+}
+
+function addCategory() {
+    const input = document.getElementById('newCategoryName');
+    if (!input) return;
+
+    const category = normalizeCategory(input.value);
+    if (!category || category === 'Boshqa') {
+        alert('Iltimos, yangi kategoriya nomini kiriting!');
+        return;
+    }
+
+    if (menuCategories.includes(category)) {
+        alert('Bu kategoriya allaqachon mavjud.');
+        return;
+    }
+
+    menuCategories.push(category);
+    input.value = '';
+    updateCategoryControls();
+    showToast(`✅ "${category}" kategoriyasi qo'shildi!`);
+}
+
+function removeCategory(category) {
+    if (!confirm(`"${category}" kategoriyasini o'chirishni xohlaysizmi?`)) return;
+    if (menuData.some(item => normalizeCategory(item.category) === category)) {
+        alert('Bu kategoriya ichida taomlar mavjud. Avval ularni boshqa kategoriya ostiga o‘tkazing.');
+        return;
+    }
+    menuCategories = menuCategories.filter(cat => cat !== category);
+    updateCategoryControls();
+    showToast(`❌ "${category}" kategoriyasi o'chirildi`);
 }
 
 function readImageAsBase64(file, callback) {
@@ -497,7 +577,7 @@ function updateSelectedItem() {
     item.emoji = document.getElementById('editItemEmoji').value.trim() || '🍽️';
     item.price = parseInt(document.getElementById('editItemPrice').value);
     item.cost = parseInt(document.getElementById('editItemCost').value) || 0;
-    item.category = document.getElementById('editItemCategory').value;
+    item.category = normalizeCategory(document.getElementById('editItemCategory').value);
     item.desc = document.getElementById('editItemDesc').value.trim();
 
     const imageUrl = document.getElementById('editItemImageUrl').value.trim();
@@ -517,6 +597,8 @@ function updateSelectedItem() {
         return;
     }
 
+    menuCategories = getUniqueCategories();
+    updateCategoryControls();
     saveMenuToAPI();
     renderItemsList();
     cancelEdit();
@@ -549,7 +631,7 @@ async function addNewItem() {
     const emoji = document.getElementById('itemEmoji').value.trim() || '🍽️';
     const price = parseInt(document.getElementById('itemPrice').value);
     const cost = parseInt(document.getElementById('itemCost').value) || 0;
-    const category = document.getElementById('itemCategory').value;
+    const category = normalizeCategory(document.getElementById('itemCategory').value);
     const desc = document.getElementById('itemDesc').value.trim();
 
     if (!name || isNaN(price) || price <= 0 || isNaN(cost)) {
@@ -588,6 +670,8 @@ async function addNewItem() {
     }
 
     menuData.push(newItem);
+    menuCategories = getUniqueCategories();
+    updateCategoryControls();
     await saveMenuToAPI();
     renderItemsList();
     clearAddForm();

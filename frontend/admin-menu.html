@@ -351,10 +351,16 @@
                 <input type="text" id="searchItemInput" placeholder="🔍 Taom nomi yoki ID bo'yicha qidirish...">
                 <select id="categoryFilter">
                     <option value="all">Barcha kategoriyalar</option>
-                    <option value=" MIlliy taomlar">Milliytaomlar</option>
-                    <option value=" Kaboblar"> Kaboblar</option>
-                    <option value=" Suv va Shirinliklar"> Suv va Shirinliklar</option>
                 </select>
+            </div>
+
+            <div class="add-item-card" style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-left: 4px solid #3b82f6;">
+                <h3><i class="fas fa-tags"></i> Kategoriyalar</h3>
+                <div style="display:flex; flex-wrap: wrap; gap:12px; align-items:center; margin-bottom:12px;">
+                    <input type="text" id="newCategoryName" placeholder="Yangi kategoriya nomi" style="flex:1; min-width:180px; padding:12px; border:1px solid #cbd5e1; border-radius:10px;">
+                    <button class="btn-add-item" onclick="addCategory()" style="padding:12px 18px;">Qo'shish</button>
+                </div>
+                <div id="categoryManagerList"></div>
             </div>
 
             <!-- Add New Item Form -->
@@ -379,11 +385,7 @@
                     </div>
                     <div class="form-group">
                         <label>Kategoriya *</label>
-                        <select id="itemCategory">
-                            <option value="Milliy taomlar">Milliy taomlar</option>
-                            <option value="Kaboblar">Kaboblar</option>
-                            <option value="Suv va Shirinliklar">Shirinliklar</option>
-                        </select>
+                        <select id="itemCategory"></select>
                     </div>
                     <div class="form-group">
                         <label>Tavsif</label>
@@ -423,11 +425,7 @@
                     </div>
                     <div class="form-group">
                         <label>Kategoriya</label>
-                        <select id="editItemCategory">
-                            <option value=" Milliy taomlar"> MIlliy taomlar</option>
-                            <option value=" Kaboblar">Kaboblar</option>
-                            <option value=" Suv va Shirinliklar"> Suv va Shirinliklar</option>
-                        </select>
+                        <select id="editItemCategory"></select>
                     </div>
                     <div class="form-group">
                         <label>Tavsif</label>
