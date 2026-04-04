@@ -459,8 +459,7 @@ function closeModal() {
 }
 
 function openImageModal(img, name, emoji) {
-    if (!img) return;
-    fullScreenImage.src = img;
+    fullScreenImage.src = img || `https://via.placeholder.com/400?text=${encodeURIComponent(emoji)}`;
     imageCaption.textContent = `${emoji} ${name}`;
     imageModal.classList.add('open');
 }
