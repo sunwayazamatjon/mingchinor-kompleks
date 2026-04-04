@@ -11,6 +11,7 @@ let posMenuData = [];
 async function checkWaiterLogin() {
     const login = document.getElementById('waiterLogin').value.trim();
     const password = document.getElementById('waiterPassword').value.trim();
+    const phone = document.getElementById('waiterPhone').value.trim();
     const errorDiv = document.getElementById('loginError');
 
     try {
@@ -23,6 +24,13 @@ async function checkWaiterLogin() {
         
         if (result.success) {
             currentUser = result.waiter;
+            // Telefon raqamini saqlash
+            if (phone) {
+                currentUser.phone = phone;
+                localStorage.setItem('waiterPhone', phone);
+            } else {
+                currentUser.phone = localStorage.getItem('waiterPhone') || '';
+            }
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             loginSuccess();
         } else {
@@ -37,10 +45,11 @@ function loginSuccess() {
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('adminContent').style.display = 'block';
     
-    // Ofitsiant ismini chiqarish
+    // Ofitsiant ismini va telefonini chiqarish
     const headerTitle = document.querySelector('.admin-header h2');
     if (headerTitle && currentUser) {
-        headerTitle.innerHTML = `<i class="fas fa-user-tie"></i> Ofisant: ${currentUser.name}`;
+        const phoneInfo = currentUser.phone ? ` (${currentUser.phone})` : '';
+        headerTitle.innerHTML = `<i class="fas fa-user-tie"></i> Ofisant: ${currentUser.name}${phoneInfo}`;
     }
     
     loadOrders();
@@ -479,7 +488,17 @@ async function placePosOrder() {
     const items = [];
     for (const [id, qty] of Object.entries(posCart)) {
         if (qty > 0) {
-            items.push({ id, quantity: qty });
+            const item = posMenuData.find(i => i.id == id);
+            if (item) {
+                items.push({ 
+                    id: item.id, 
+                    qty: qty, 
+                    name: item.name, 
+                    emoji: item.emoji, 
+                    price: item.price, 
+                    cost: item.cost || 0 
+                });
+            }
         }
     }
     
@@ -488,26 +507,33 @@ async function placePosOrder() {
         return;
     }
     
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const serviceFee = Math.round(totalAmount * 0.1); // 10% service fee
+    
     try {
-        const response = await fetch(`${API_URL}/api/orders`, {
+        const response = await fetch(`${API_URL}/api/order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 tableNumber: parseInt(tableNum),
-                peopleCount: parseInt(peopleCount),
-                items,
-                source: 'pos'
+                numberOfPeople: parseInt(peopleCount),
+                items: items,
+                totalAmount: totalAmount,
+                serviceFee: serviceFee
             })
         });
         
-        if (response.ok) {
-            alert('Zakaz muvaffaqiyatli berildi!');
+        const result = await response.json();
+        if (result.success) {
+            showToast('✅ Zakaz muvaffaqiyatli berildi!');
             posCart = {};
             document.getElementById('posTableNumber').value = '';
             document.getElementById('posPeopleCount').value = '';
             renderPosMenu();
+            // Buyurtmalar ro'yxatini yangilash
+            loadOrders();
         } else {
-            alert('Zakaz berishda xatolik!');
+            alert('Zakaz berishda xatolik: ' + (result.error || 'Noma\'lum'));
         }
     } catch (err) {
         console.error('Order error:', err);

@@ -195,8 +195,103 @@ function renderWaitersList() {
     `).join('');
 }
 
-// ============ TIZIM SOZLAMALARI ============
-async function loadSystemConfig() {
+// ============ STOLLAR API ============
+async function loadTables() {
+    try {
+        const response = await fetch(`${API_URL}/api/admin/tables`);
+        const tables = await response.json();
+        renderTablesList(tables);
+    } catch (err) {
+        console.error('Tables load error:', err);
+        showToast('❌ Stollar yuklanmadi');
+    }
+}
+
+async function addTable() {
+    const tableNumber = document.getElementById('newTableNumber').value.trim();
+    if (!tableNumber || isNaN(tableNumber) || tableNumber < 1) {
+        alert('Stol raqamini to\'g\'ri kiriting!');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/api/admin/tables`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                password: ADMIN_PASSWORD,
+                table: { number: parseInt(tableNumber) }
+            })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showToast('✅ Stol qo\'shildi!');
+            document.getElementById('newTableNumber').value = '';
+            loadTables();
+        } else {
+            alert('Xato: ' + result.error);
+        }
+    } catch (err) {
+        console.error('Add table error:', err);
+        showToast('❌ Stol qo\'shishda xatolik');
+    }
+}
+
+async function deleteTable(tableId) {
+    if (!confirm('Stolni o\'chirmoqchimisiz?')) return;
+    try {
+        const response = await fetch(`${API_URL}/api/admin/tables/${tableId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: ADMIN_PASSWORD })
+        });
+        const result = await response.json();
+        if (result.success) {
+            showToast('❌ Stol o\'chirildi');
+            loadTables();
+        } else {
+            alert('Xato: ' + result.error);
+        }
+    } catch (err) {
+        console.error('Delete table error:', err);
+        showToast('❌ Stol o\'chirishda xatolik');
+    }
+}
+
+function renderTablesList(tables) {
+    const container = document.getElementById('tables-list-container');
+    if (!container) return;
+
+    if (tables.length === 0) {
+        container.innerHTML = '<div style="padding: 40px; text-align: center; color: #666;">Stollar mavjud emas</div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="items-table">
+            <div class="table-header" style="grid-template-columns: 100px 1fr 150px;">
+                <div>Raqam</div>
+                <div>Holati</div>
+                <div>Amallar</div>
+            </div>
+            <div id="tablesListContainer">
+                ${tables.map(table => `
+                    <div class="table-row" style="grid-template-columns: 100px 1fr 150px;">
+                        <div><strong>${table.number}</strong></div>
+                        <div>
+                            <span class="status-badge ${table.status === 'free' ? 'status-success' : 'status-warning'}">
+                                ${table.status === 'free' ? 'Bo\'sh' : 'Band'}
+                            </span>
+                        </div>
+                        <div>
+                            <button class="btn-delete" onclick="deleteTable(${table.number})">O'chirish</button>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `;
+}
     try {
         const response = await fetch(`${API_URL}/api/config`);
         if (response.ok) {
@@ -577,16 +672,20 @@ function renderActiveOrders(orders) {
         return;
     }
 
+    // Pлитка шаклида чиқариш
     container.innerHTML = orders.map(order => `
-        <div class="order-card" style="background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #10b981;">
-            <div class="order-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px;">
-                <div class="order-table" style="font-size: 1.2rem; font-weight: bold; background: #f0e4d4; padding: 4px 12px; border-radius: 20px; color: #c0522a;">Stol ${order.tableNumber}</div>
+        <div class="order-card" style="background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #10b981; display: flex; flex-direction: column; gap: 12px;">
+            <div class="order-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div class="order-table" style="font-size: 1.2rem; font-weight: bold; background: #f0e4d4; padding: 4px 12px; border-radius: 20px; color: #c0522a;">🏠 Stol ${order.tableNumber}</div>
                 <div class="order-time" style="color: #8a6a50; font-size: 0.8rem;">${new Date(order.createdAt).toLocaleString('uz-UZ')}</div>
             </div>
-            <div class="order-items" style="margin: 16px 0; padding: 12px; background: #faf7f2; border-radius: 12px;">
-                ${order.items.map(item => `<div style="display: flex; justify-content: space-between; padding: 4px 0;"><span>${item.qty}x ${item.name}</span><span>${formatPrice(item.price * item.qty)}</span></div>`).join('')}
+            
+            <div class="order-items" style="background: #faf7f2; border-radius: 12px; padding: 12px;">
+                ${order.items.map(item => `<div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e0d0c0;"><span>${item.qty}x ${item.emoji} ${item.name}</span><span>${formatPrice(item.price * item.qty)}</span></div>`).join('')}
             </div>
-            <div style="font-weight: bold; font-size: 1.1rem; margin: 16px 0; text-align: right; color: #c0522a;">Jami: ${formatPrice(order.totalAmount)}</div>
+            
+            <div style="font-weight: bold; font-size: 1.1rem; text-align: right; color: #c0522a;">Jami: ${formatPrice(order.totalAmount)}</div>
+            
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <button class="btn-add-item" style="background: #10b981; flex: 1;" onclick="printCustomerReceipt('${order._id}')"><i class="fas fa-print"></i> Chek chiqarish</button>
                 <button class="btn-add-item" style="background: #3b82f6; flex: 1;" onclick="markAsPaid('${order._id}')"><i class="fas fa-check"></i> To'landi</button>
