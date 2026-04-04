@@ -1,8 +1,8 @@
 // API manzilini dinamik aniqlash (Lokal yoki Bulut)
-const getApiUrl = () => {
+function getApiUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const customApi = urlParams.get('api');
-    
+
     // 1. URL parametrda 'api' bo'lsa (masalan: ?api=192.168.1.100)
     if (customApi) return `http://${customApi}:3002`;
 
@@ -21,7 +21,7 @@ const getApiUrl = () => {
         return window.location.origin; // Vercel-da /api o'zi vercel.json orqali ishlaydi
     }
 
-    return 'http://localhost:3002'; 
-};
+    return 'http://localhost:3002';
+}
 
 const API_URL = getApiUrl();

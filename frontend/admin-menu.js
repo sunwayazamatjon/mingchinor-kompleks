@@ -292,6 +292,8 @@ function renderTablesList(tables) {
         </div>
     `;
 }
+// ============ TIZIM SOZLAMALARI ============
+async function loadSystemConfig() {
     try {
         const response = await fetch(`${API_URL}/api/config`);
         if (response.ok) {
