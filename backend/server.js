@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const { v4: uuidv4 } = require('uuid');
 const http = require('http');
 const socketIo = require('socket.io');
@@ -23,13 +24,33 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // ==================== MONGODB ULANISH ====================
 const MONGODB_URI = process.env.MONGODB_URI;
+let mongoServer;
 
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => console.log('✅ MongoDB-ga muvaffaqiyatli ulanildi'))
-.catch(err => console.error('❌ MongoDB ulanish xatosi:', err));
+async function connectDatabase() {
+    try {
+        if (MONGODB_URI) {
+            console.log('🔌 MongoDB URI topildi, ulanishga urinilmoqda...');
+            await mongoose.connect(MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            });
+            console.log('✅ MongoDB-ga muvaffaqiyatli ulanildi');
+        } else {
+            throw new Error('MONGODB_URI mavjud emas');
+        }
+    } catch (err) {
+        console.warn('❌ MongoDB ulanish xatosi:', err.message);
+        console.log('🔄 In-memory MongoDB serverga o‘tayapman...');
+        mongoServer = await MongoMemoryServer.create();
+        await mongoose.connect(mongoServer.getUri(), {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log('✅ In-memory MongoDB server ishga tushdi');
+    }
+}
+
+connectDatabase();
 
 // ==================== MODELLAR ====================
 const MenuSchema = new mongoose.Schema({
