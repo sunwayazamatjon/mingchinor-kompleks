@@ -185,7 +185,7 @@ function renderWaitersList() {
     container.innerHTML = waiterData.map(w => `
         <div class="table-row" style="grid-template-columns: 80px 1.5fr 1fr 1fr 100px;">
             <div>#${w.id}</div>
-            <div><strong>${w.name}</strong></div>
+            <div><strong style="cursor: pointer; color: #c0522a;" onclick="showWaiterDailyStats('${w.id}', '${w.name}')">${w.name}</strong></div>
             <div>${w.login}</div>
             <div><code>${w.password}</code></div>
             <div>
@@ -292,6 +292,70 @@ function renderTablesList(tables) {
         </div>
     `;
 }
+// ============ OFISANT KUNLIK STATISTIKASI ============
+async function showWaiterDailyStats(waiterId, waiterName) {
+    try {
+        const response = await fetch(`${API_URL}/api/admin/stats/sales?password=${ADMIN_PASSWORD}`);
+        const stats = await response.json();
+        
+        // Ofitsiant ma'lumotlarini filter qilish
+        const waiterStats = stats.waiters.find(w => w.id === waiterId);
+        
+        // Modal ochish
+        const modal = document.createElement('div');
+        modal.className = 'login-overlay';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 3000;';
+        
+        const today = new Date();
+        const dateStr = today.toLocaleDateString('uz-UZ');
+        
+        modal.innerHTML = `
+            <div style="background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;"><i class="fas fa-user-tie"></i> ${waiterName}</h2>
+                    <button onclick="this.closest('.login-overlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+                </div>
+                
+                <div style="background: #f0e4d4; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    <div style="font-size: 0.85rem; color: #8a6a50; margin-bottom: 12px;">
+                        📅 ${dateStr} | ID: ${waiterId}
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.8rem; color: #666;">Jami cheklar</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #c0522a;">${waiterStats ? waiterStats.ordersCount : 0}</div>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 0.8rem; color: #666;">Mijozlar</div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: #c0522a;">${waiterStats ? waiterStats.peopleServed : 0}</div>
+                        </div>
+                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center; grid-column: 1/-1;">
+                            <div style="font-size: 0.8rem; color: #666;">Kunlik savdo</div>
+                            <div style="font-size: 1.3rem; font-weight: bold; color: #10b981;">${formatPrice(waiterStats ? waiterStats.revenue : 0)}</div>
+                        </div>
+                    </div>
+                    
+                    ${waiterStats ? `
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0d0c0; font-size: 0.9rem; color: #666;">
+                        <div>O'rtacha usul: <strong>${(waiterStats.revenue / waiterStats.ordersCount).toFixed(0).toLocaleString('uz-UZ')} so'm</strong></div>
+                    </div>
+                    ` : '<div style="margin-top: 12px; color: #666; text-align: center;">Hali xizmat ko\'rsatilmagan</div>'}
+                </div>
+                
+                <button onclick="this.closest('.login-overlay').remove()" style="width: 100%; padding: 12px; background: #c0522a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                    Yopish
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    } catch (err) {
+        console.error('Waiter stats error:', err);
+        showToast('❌ Statistikani yuklashda xatolik');
+    }
+}
+
 // ============ TIZIM SOZLAMALARI ============
 async function loadSystemConfig() {
     try {

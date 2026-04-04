@@ -163,6 +163,7 @@ function renderOrders() {
             <div class="order-total">
                 Jami: ${formatPrice(order.totalAmount)}
             </div>
+            ${order.serviceFee ? `<div style="color: #f59e0b; font-size: 0.9rem; font-weight: 600;">Xizmat narxi: ${formatPrice(order.serviceFee)}</div>` : ''}
             ${order.status === 'pending' ? `
                 <button class="btn-confirm" onclick="confirmOrder('${order.id}')">
                     <i class="fas fa-check"></i> Tasdiqlash & Printerga jo'natish
