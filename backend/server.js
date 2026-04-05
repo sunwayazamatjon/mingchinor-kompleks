@@ -127,6 +127,55 @@ function buildDateFilter(dateValue, fieldName = 'createdAt') {
     return { [fieldName]: { $gte: start, $lte: end } };
 }
 
+async function buildValidatedOrderPayload(rawItems, numberOfPeople) {
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+        throw new Error('Buyurtma ichida taomlar yo\'q');
+    }
+
+    const menuIds = [...new Set(rawItems.map(item => parseInt(item.id)).filter(Number.isFinite))];
+    const menuItems = await Menu.find({ id: { $in: menuIds } });
+    const menuById = new Map(menuItems.map(item => [item.id, item]));
+
+    const items = rawItems.map(rawItem => {
+        const id = parseInt(rawItem.id);
+        const qty = parseInt(rawItem.qty);
+        const menuItem = menuById.get(id);
+
+        if (!menuItem) {
+            throw new Error(`Taom topilmadi: ${rawItem.id}`);
+        }
+        if (menuItem.available === false) {
+            throw new Error(`Taom vaqtincha mavjud emas: ${menuItem.name}`);
+        }
+        if (!Number.isFinite(qty) || qty <= 0) {
+            throw new Error(`Taom soni noto'g'ri: ${menuItem.name}`);
+        }
+
+        return {
+            id: menuItem.id,
+            name: menuItem.name,
+            emoji: menuItem.emoji || '',
+            price: menuItem.price,
+            cost: menuItem.cost || 0,
+            category: menuItem.category,
+            qty
+        };
+    });
+
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const people = Math.max(parseInt(numberOfPeople) || 1, 1);
+    const config = await Config.findOne();
+    const serviceFeePerPerson = config?.service_fee ?? 5000;
+    const serviceFee = people * serviceFeePerPerson;
+
+    return {
+        items,
+        subtotal,
+        serviceFee,
+        totalAmount: subtotal + serviceFee
+    };
+}
+
 // ==================== INITIAL DATA ====================
 async function checkInitialData() {
     const menuCount = await Menu.countDocuments();
@@ -227,21 +276,23 @@ app.post('/api/admin/menu', async (req, res) => {
 
 // 3. Buyurtma berish
 app.post('/api/order', async (req, res) => {
-    const { tableNumber, numberOfPeople, items, totalAmount, serviceFee } = req.body;
+    const { tableNumber, numberOfPeople, items } = req.body;
     
     if (!tableNumber || !items || items.length === 0) {
         return res.status(400).json({ error: 'Stol raqami va buyurtma majburiy' });
     }
     
     try {
+        const people = Math.max(parseInt(numberOfPeople) || 1, 1);
+        const validatedOrder = await buildValidatedOrderPayload(items, people);
         const orderId = uuidv4();
         const order = new Order({
             id: orderId,
             tableNumber: parseInt(tableNumber),
-            numberOfPeople: parseInt(numberOfPeople) || 1,
-            items: items,
-            totalAmount: totalAmount,
-            serviceFee: serviceFee || 0,
+            numberOfPeople: people,
+            items: validatedOrder.items,
+            totalAmount: validatedOrder.totalAmount,
+            serviceFee: validatedOrder.serviceFee,
             status: 'pending'
         });
         

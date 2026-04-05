@@ -7,6 +7,7 @@ let orders = [];
 let currentUser = null;
 let posCart = {};
 let posMenuData = [];
+let SERVICE_FEE_PER_PERSON = 5000;
 
 function getTodayDateValue() {
     return new Date().toISOString().slice(0, 10);
@@ -14,6 +15,23 @@ function getTodayDateValue() {
 
 function getWaiterOrdersDate() {
     return document.getElementById('waiterOrdersDateFilter')?.value || getTodayDateValue();
+}
+
+function getPosPeopleCount() {
+    return Math.max(parseInt(document.getElementById('posPeopleCount')?.value) || 0, 0);
+}
+
+async function loadSystemConfig() {
+    try {
+        const response = await fetch(`${API_URL}/api/config`);
+        if (!response.ok) return;
+        const config = await response.json();
+        if (config?.service_fee !== undefined) {
+            SERVICE_FEE_PER_PERSON = config.service_fee;
+        }
+    } catch (err) {
+        console.error('Config load error:', err);
+    }
 }
 
 async function checkWaiterLogin() {
@@ -62,6 +80,7 @@ function loginSuccess() {
     
     loadOrders();
     loadWaiterCalls();
+    loadSystemConfig();
     startAutoRefresh();
 }
 
@@ -72,6 +91,7 @@ window.addEventListener('DOMContentLoaded', () => {
         dateInput.value = getTodayDateValue();
         dateInput.addEventListener('change', loadOrders);
     }
+    document.getElementById('posPeopleCount')?.addEventListener('input', renderPosCart);
     const saved = localStorage.getItem('currentUser');
     if (saved) {
         currentUser = JSON.parse(saved);
@@ -483,7 +503,7 @@ function clearPosCart() {
 function renderPosCart() {
     const cartDiv = document.getElementById('posCartItems');
     const totalSpan = document.getElementById('posTotal');
-    let total = 0;
+    let subtotal = 0;
     let html = '';
     for (const [id, qty] of Object.entries(posCart)) {
         const item = posMenuData.find(i => i.id == id);
@@ -492,11 +512,16 @@ function renderPosCart() {
             continue;
         }
         const itemTotal = item.price * qty;
-        total += itemTotal;
+        subtotal += itemTotal;
         html += `<div class="pos-cart-item">
             <span>${item.name} x${qty}</span>
             <span>${formatPrice(itemTotal)}</span>
         </div>`;
+    }
+    const serviceFee = getPosPeopleCount() * SERVICE_FEE_PER_PERSON;
+    const total = subtotal + serviceFee;
+    if (serviceFee > 0) {
+        html += `<div class="pos-cart-item"><span>Xizmat haqi</span><span>${formatPrice(serviceFee)}</span></div>`;
     }
     cartDiv.innerHTML = html;
     totalSpan.textContent = formatPrice(total);
@@ -534,9 +559,6 @@ async function placePosOrder() {
         return;
     }
     
-    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const serviceFee = Math.round(totalAmount * 0.1); // 10% service fee
-    
     try {
         const response = await fetch(`${API_URL}/api/order`, {
             method: 'POST',
@@ -544,9 +566,7 @@ async function placePosOrder() {
             body: JSON.stringify({
                 tableNumber: parseInt(tableNum),
                 numberOfPeople: parseInt(peopleCount),
-                items: items,
-                totalAmount: totalAmount,
-                serviceFee: serviceFee
+                items: items
             })
         });
         
