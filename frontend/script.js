@@ -182,10 +182,18 @@ function saveMenuToLocal() {
 
 // ============ 3. KATEGORIYALAR ============
 function renderCategories() {
-    const categories = ['all', ...new Set(getAvailableMenuItems().map(item => normalizeCategory(item.category)).filter(Boolean))];
+    const availableCategories = [...new Set(getAvailableMenuItems().map(item => normalizeCategory(item.category)).filter(Boolean))];
+    const fallbackCategories = [...new Set(menuData.map(item => normalizeCategory(item.category)).filter(Boolean))];
+    const categoryList = availableCategories.length > 0 ? availableCategories : fallbackCategories;
+    const categories = ['all', ...categoryList];
     if (currentCategory !== 'all' && !categories.includes(currentCategory)) {
         currentCategory = 'all';
     }
+    const wrapper = document.querySelector('.categories-wrapper');
+    if (wrapper) {
+        wrapper.style.display = categories.length > 1 ? 'block' : 'none';
+    }
+    if (!categoriesContainer) return;
     categoriesContainer.innerHTML = categories.map(cat => `
         <button class="category-chip ${currentCategory === cat ? 'active' : ''}" data-category="${cat}">
             ${cat === 'all' ? '<i class="fas fa-border-all"></i> Barchasi' : cat}
