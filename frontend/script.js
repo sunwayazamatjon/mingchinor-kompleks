@@ -177,9 +177,10 @@ function renderCategories() {
 
 // ============ 4. MENYUNI RENDER QILISH ============
 function renderMenu() {
+    const availableMenu = menuData.filter(item => item.available !== false);
     const filtered = currentCategory === 'all' 
-        ? menuData 
-        : menuData.filter(item => item.category === currentCategory);
+        ? availableMenu 
+        : availableMenu.filter(item => item.category === currentCategory);
     
     const grouped = filtered.reduce((acc, item) => {
         if (!acc[item.category]) acc[item.category] = [];
@@ -197,7 +198,7 @@ function renderMenu() {
         html += `<div class="section-title">${category}</div>`;
         html += items.map(item => `
             <div class="item-card ${!item.available ? 'unavailable' : ''}" data-id="${item.id}">
-                <div class="item-emoji" onclick="openImageModal('${item.image || ''}', '${item.name}', '${item.emoji}')">
+                <div class="item-emoji" onclick='openImageModal(${JSON.stringify(item.image || "")}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.emoji)})'>
                     ${item.image ? `<img src="${item.image}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 12px;" onerror="this.src='https://via.placeholder.com/48?text=${encodeURIComponent(item.emoji)}'">` : item.emoji}
                 </div>
                 <div class="item-info">
@@ -268,6 +269,11 @@ function loadCartFromLocal() {
     const stored = localStorage.getItem('mingchinor_cart');
     if (stored) {
         cart = JSON.parse(stored);
+        Object.keys(cart).forEach(id => {
+            if (!menuData.find(item => item.id == id && item.available !== false)) {
+                delete cart[id];
+            }
+        });
         updateCartUI();
         menuData.forEach(item => renderControl(item));
     }

@@ -6,6 +6,7 @@ let menuData = [];
 let waiterData = [];
 let menuCategories = [];
 let selectedEditId = null;
+const DEFAULT_MENU_CATEGORIES = ['Milliy taomlar', 'Kaboblar', 'Suv va shirinliklar'];
 
 // ============ TABLAR ============
 function switchTab(tabId) {
@@ -106,10 +107,19 @@ function getUniqueCategories() {
     return [...new Set(menuData.map(item => normalizeCategory(item.category)).filter(Boolean))];
 }
 
+function mergeCategories(...categoryLists) {
+    return [...new Set(
+        categoryLists
+            .flat()
+            .map(category => normalizeCategory(category))
+            .filter(category => category && category !== 'Boshqa')
+    )];
+}
+
 function updateCategoryControls() {
-    menuCategories = getUniqueCategories();
+    menuCategories = mergeCategories(DEFAULT_MENU_CATEGORIES, menuCategories, getUniqueCategories());
     if (menuCategories.length === 0) {
-        menuCategories = ['Milliy taomlar', 'Kaboblar', 'Suv va Shirinliklar'];
+        menuCategories = [...DEFAULT_MENU_CATEGORIES];
     }
 
     const categoryFilter = document.getElementById('categoryFilter');
@@ -159,8 +169,12 @@ function addCategory() {
     }
 
     menuCategories.push(category);
+    const itemCategory = document.getElementById('itemCategory');
+    const editItemCategory = document.getElementById('editItemCategory');
     input.value = '';
     updateCategoryControls();
+    if (itemCategory) itemCategory.value = category;
+    if (editItemCategory) editItemCategory.value = category;
     showToast(`✅ "${category}" kategoriyasi qo'shildi!`);
 }
 
@@ -188,6 +202,21 @@ function showToast(message) {
     toast.textContent = message;
     toast.classList.add('show');
     setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+function openImageModal(imageUrl, itemName, emoji = '') {
+    const modal = document.getElementById('imageModal');
+    const fullScreenImage = document.getElementById('fullScreenImage');
+    const imageCaption = document.getElementById('imageCaption');
+    if (!modal || !fullScreenImage || !imageCaption) return;
+
+    fullScreenImage.src = imageUrl || `https://via.placeholder.com/400?text=${encodeURIComponent(emoji || 'Rasm')}`;
+    imageCaption.textContent = `${emoji ? `${emoji} ` : ''}${itemName || 'Taom rasmi'}`.trim();
+    modal.classList.add('open');
+}
+
+function closeImageModalHandler() {
+    document.getElementById('imageModal')?.classList.remove('open');
 }
 
 // ============ OFISANTLAR API ============
@@ -499,7 +528,7 @@ function renderItemsList() {
         <div class="table-row ${!item.available ? 'unavailable' : ''}" onclick="selectForEdit(${item.id})">
             <div>#${item.id}</div>
             <div>
-                ${item.image ? `<img src="${item.image}" class="item-image" onerror="this.src='https://via.placeholder.com/60?text=Rasm+yoq'">` :
+                ${item.image ? `<img src="${item.image}" class="item-image" style="cursor: zoom-in;" onclick="event.stopPropagation(); openImageModal(${JSON.stringify(item.image)}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.emoji || '')})" onerror="this.src='https://via.placeholder.com/60?text=Rasm+yoq'">` :
             `<div class="item-image" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0;">${item.emoji}</div>`}
             </div>
             <div>
@@ -691,6 +720,12 @@ function clearAddForm() {
 // Qidiruv va filter
 document.getElementById('searchItemInput')?.addEventListener('input', () => renderItemsList());
 document.getElementById('categoryFilter')?.addEventListener('change', () => renderItemsList());
+document.getElementById('closeImageModal')?.addEventListener('click', closeImageModalHandler);
+document.getElementById('imageModal')?.addEventListener('click', (event) => {
+    if (event.target?.id === 'imageModal') {
+        closeImageModalHandler();
+    }
+});
 
 // Statistika yuklash
 function openStatsModal() {
