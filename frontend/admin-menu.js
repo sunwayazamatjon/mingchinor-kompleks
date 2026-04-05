@@ -8,6 +8,27 @@ let menuCategories = [];
 let selectedEditId = null;
 const DEFAULT_MENU_CATEGORIES = ['Milliy taomlar', 'Kaboblar', 'Suv va shirinliklar'];
 
+function getTodayDateValue() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function getSelectedDateValue(inputId) {
+    return document.getElementById(inputId)?.value || getTodayDateValue();
+}
+
+function buildDateQuery(inputId) {
+    const date = getSelectedDateValue(inputId);
+    return date ? `&date=${encodeURIComponent(date)}` : '';
+}
+
+function getItemBadge(item) {
+    return (item?.emoji || '').trim() || (item?.name || '?').trim().charAt(0).toUpperCase() || '?';
+}
+
+function getItemDisplayName(item) {
+    return `${item?.emoji ? `${item.emoji} ` : ''}${item?.name || ''}`.trim();
+}
+
 // ============ TABLAR ============
 function switchTab(tabId) {
     // Barcha tablarni yashirish
@@ -217,6 +238,44 @@ function openImageModal(imageUrl, itemName, emoji = '') {
 
 function closeImageModalHandler() {
     document.getElementById('imageModal')?.classList.remove('open');
+}
+
+function initializeMenuAdminEnhancements() {
+    ['itemEmoji', 'editItemEmoji'].forEach(id => {
+        const input = document.getElementById(id);
+        input?.closest('.form-group')?.remove();
+    });
+
+    const statsModalCard = document.querySelector('#statsModal .admin-container');
+    const statsHeading = document.querySelector('#statsModal h2');
+    if (statsModalCard && statsHeading && !document.getElementById('statsDateFilter')) {
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:24px;';
+        header.innerHTML = `
+            <h2 style="margin:0;"><i class="fas fa-chart-line"></i> Umumiy Foyda Hisoboti</h2>
+            <label style="display:flex; align-items:center; gap:8px; color:#64748b; font-weight:600;">
+                Sana:
+                <input type="date" id="statsDateFilter" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px;">
+            </label>
+        `;
+        statsHeading.replaceWith(header);
+        document.getElementById('statsDateFilter').value = getTodayDateValue();
+    }
+
+    const cashierContainer = document.getElementById('cashier-orders-container');
+    if (cashierContainer && !document.getElementById('cashierDateFilter')) {
+        const toolbar = document.createElement('div');
+        toolbar.style.cssText = 'display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:16px;';
+        toolbar.innerHTML = `
+            <h3 style="margin:0;"><i class="fas fa-cash-register"></i> Faol stollar (To'lov kutilmoqda)</h3>
+            <label style="display:flex; align-items:center; gap:8px; color:#64748b; font-weight:600;">
+                Sana:
+                <input type="date" id="cashierDateFilter" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px;">
+            </label>
+        `;
+        cashierContainer.parentElement?.insertBefore(toolbar, cashierContainer);
+        document.getElementById('cashierDateFilter').value = getTodayDateValue();
+    }
 }
 
 // ============ OFISANTLAR API ============
@@ -529,10 +588,10 @@ function renderItemsList() {
             <div>#${item.id}</div>
             <div>
                 ${item.image ? `<img src="${item.image}" class="item-image" style="cursor: zoom-in;" onclick="event.stopPropagation(); openImageModal(${JSON.stringify(item.image)}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.emoji || '')})" onerror="this.src='https://via.placeholder.com/60?text=Rasm+yoq'">` :
-            `<div class="item-image" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0;">${item.emoji}</div>`}
+            `<div class="item-image" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0; font-weight: 700; color: #8a6a50;">${getItemBadge(item)}</div>`}
             </div>
             <div>
-                <strong>${item.emoji} ${item.name}</strong><br>
+                <strong>${getItemDisplayName(item)}</strong><br>
                 <small>${item.desc?.substring(0, 40) || ''}</small><br>
                 <small style="color: #666;">Tan narxi: ${formatPrice(item.cost || 0)}</small>
             </div>
@@ -568,11 +627,10 @@ function selectForEdit(id) {
     const infoDiv = document.getElementById('selectedItemInfo');
     infoDiv.innerHTML = `
         <img src="${item.image || 'https://via.placeholder.com/50?text=Rasm+yoq'}" onerror="this.src='https://via.placeholder.com/50?text=Rasm+yoq'">
-        <div><strong>${item.emoji} ${item.name}</strong><br>ID: #${item.id}</div>
+        <div><strong>${getItemDisplayName(item)}</strong><br>ID: #${item.id}</div>
     `;
 
     document.getElementById('editItemName').value = item.name;
-    document.getElementById('editItemEmoji').value = item.emoji;
     document.getElementById('editItemPrice').value = item.price;
     document.getElementById('editItemCost').value = item.cost || 0;
     document.getElementById('editItemCategory').value = item.category;
@@ -603,7 +661,6 @@ function updateSelectedItem() {
     if (!item) return;
 
     item.name = document.getElementById('editItemName').value.trim();
-    item.emoji = document.getElementById('editItemEmoji').value.trim() || '🍽️';
     item.price = parseInt(document.getElementById('editItemPrice').value);
     item.cost = parseInt(document.getElementById('editItemCost').value) || 0;
     item.category = normalizeCategory(document.getElementById('editItemCategory').value);
@@ -657,7 +714,6 @@ async function deleteItem(id) {
 
 async function addNewItem() {
     const name = document.getElementById('itemName').value.trim();
-    const emoji = document.getElementById('itemEmoji').value.trim() || '🍽️';
     const price = parseInt(document.getElementById('itemPrice').value);
     const cost = parseInt(document.getElementById('itemCost').value) || 0;
     const category = normalizeCategory(document.getElementById('itemCategory').value);
@@ -671,7 +727,7 @@ async function addNewItem() {
     const newId = Math.max(...menuData.map(i => i.id), 0) + 1;
     const newItem = {
         id: newId,
-        emoji,
+        emoji: '',
         name,
         desc: desc || '',
         price,
@@ -709,7 +765,6 @@ async function addNewItem() {
 
 function clearAddForm() {
     document.getElementById('itemName').value = '';
-    document.getElementById('itemEmoji').value = '';
     document.getElementById('itemPrice').value = '';
     document.getElementById('itemCost').value = '';
     document.getElementById('itemDesc').value = '';
@@ -717,10 +772,14 @@ function clearAddForm() {
     document.getElementById('itemImageUrl').value = '';
 }
 
+initializeMenuAdminEnhancements();
+
 // Qidiruv va filter
 document.getElementById('searchItemInput')?.addEventListener('input', () => renderItemsList());
 document.getElementById('categoryFilter')?.addEventListener('change', () => renderItemsList());
 document.getElementById('closeImageModal')?.addEventListener('click', closeImageModalHandler);
+document.getElementById('statsDateFilter')?.addEventListener('change', loadStats);
+document.getElementById('cashierDateFilter')?.addEventListener('change', loadActiveOrders);
 document.getElementById('imageModal')?.addEventListener('click', (event) => {
     if (event.target?.id === 'imageModal') {
         closeImageModalHandler();
@@ -741,11 +800,12 @@ async function loadStats() {
     const summaryDiv = document.getElementById('statsSummary');
     const itemsDiv = document.getElementById('statsItemsList');
     const waitersDiv = document.getElementById('statsWaitersList');
+    const selectedDate = getSelectedDateValue('statsDateFilter');
     
     if (summaryDiv) summaryDiv.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px;">Yuklanmoqda...</div>';
     
     try {
-        const response = await fetch(`${API_URL}/api/admin/stats/sales?password=${ADMIN_PASSWORD}`);
+        const response = await fetch(`${API_URL}/api/admin/stats/sales?password=${ADMIN_PASSWORD}&date=${encodeURIComponent(selectedDate)}`);
         const stats = await response.json();
 
         // Summary qismi
@@ -777,7 +837,7 @@ async function loadStats() {
             } else {
                 itemsDiv.innerHTML = stats.items.map(item => `
                     <div class="table-row" style="grid-template-columns: 1fr 80px 80px 80px 80px 80px; padding: 12px 16px;">
-                        <div style="font-weight: 600;">${item.emoji} ${item.name}</div>
+                        <div style="font-weight: 600;">${item.emoji ? `${item.emoji} ` : ''}${item.name}</div>
                         <div style="text-align: center;">${item.quantity}</div>
                         <div style="text-align: center;">—</div>
                         <div>${formatPrice(item.totalRevenue)}</div>
@@ -840,7 +900,7 @@ function downloadQRCode() {
 // ============ KASSA ============
 async function loadActiveOrders() {
     try {
-        const response = await fetch(`${API_URL}/api/orders/active?password=${ADMIN_PASSWORD}`);
+        const response = await fetch(`${API_URL}/api/orders/active?password=${ADMIN_PASSWORD}${buildDateQuery('cashierDateFilter')}`);
         const orders = await response.json();
         renderActiveOrders(orders);
     } catch (err) {
@@ -866,14 +926,14 @@ function renderActiveOrders(orders) {
             </div>
             
             <div class="order-items" style="background: #faf7f2; border-radius: 12px; padding: 12px;">
-                ${order.items.map(item => `<div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e0d0c0;"><span>${item.qty}x ${item.emoji} ${item.name}</span><span>${formatPrice(item.price * item.qty)}</span></div>`).join('')}
+                ${order.items.map(item => `<div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e0d0c0;"><span>${item.qty}x ${item.emoji ? `${item.emoji} ` : ''}${item.name}</span><span>${formatPrice(item.price * item.qty)}</span></div>`).join('')}
             </div>
             
             <div style="font-weight: bold; font-size: 1.1rem; text-align: right; color: #c0522a;">Jami: ${formatPrice(order.totalAmount)}</div>
             
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn-add-item" style="background: #10b981; flex: 1;" onclick="printCustomerReceipt('${order._id}')"><i class="fas fa-print"></i> Chek chiqarish</button>
-                <button class="btn-add-item" style="background: #3b82f6; flex: 1;" onclick="markAsPaid('${order._id}')"><i class="fas fa-check"></i> To'landi</button>
+                <button class="btn-add-item" style="background: #10b981; flex: 1;" onclick="printCustomerReceipt('${order.id}')"><i class="fas fa-print"></i> Chek chiqarish</button>
+                <button class="btn-add-item" style="background: #3b82f6; flex: 1;" onclick="markAsPaid('${order.id}')"><i class="fas fa-check"></i> To'landi</button>
             </div>
         </div>
     `).join('');
@@ -911,3 +971,75 @@ async function markAsPaid(orderId) {
         showToast('❌ Tarmoq xatosi!');
     }
 }
+
+async function showWaiterDailyStats(waiterId, waiterName) {
+    try {
+        const modal = document.createElement('div');
+        modal.className = 'login-overlay';
+        modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 3000;';
+        modal.innerHTML = `
+            <div style="background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;"><i class="fas fa-user-tie"></i> ${waiterName}</h2>
+                    <button onclick="this.closest('.login-overlay').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">&times;</button>
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom: 16px;">
+                    <div style="font-size: 0.9rem; color: #8a6a50;">ID: ${waiterId}</div>
+                    <label style="display:flex; align-items:center; gap:8px; color:#64748b; font-weight:600;">
+                        Sana:
+                        <input type="date" id="waiterStatsDateFilter" value="${getTodayDateValue()}" style="padding:10px 12px; border:1px solid #cbd5e1; border-radius:10px;">
+                    </label>
+                </div>
+                <div id="waiterStatsModalBody" style="background: #f0e4d4; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                    Yuklanmoqda...
+                </div>
+                <button onclick="this.closest('.login-overlay').remove()" style="width: 100%; padding: 12px; background: #c0522a; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                    Yopish
+                </button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        const body = modal.querySelector('#waiterStatsModalBody');
+        const dateInput = modal.querySelector('#waiterStatsDateFilter');
+
+        const renderWaiterStats = async () => {
+            if (!body || !dateInput) return;
+            body.innerHTML = '<div style="text-align:center; color:#8a6a50;">Yuklanmoqda...</div>';
+            const response = await fetch(`${API_URL}/api/admin/stats/sales?password=${ADMIN_PASSWORD}&date=${encodeURIComponent(dateInput.value)}`);
+            const stats = await response.json();
+            const waiterStats = stats.waiters.find(w => w.id === waiterId);
+            const dateStr = new Date(`${dateInput.value}T00:00:00`).toLocaleDateString('uz-UZ');
+
+            body.innerHTML = `
+                <div style="font-size: 0.85rem; color: #8a6a50; margin-bottom: 12px;">${dateStr}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: #666;">Jami cheklar</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #c0522a;">${waiterStats ? waiterStats.ordersCount : 0}</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 0.8rem; color: #666;">Mijozlar</div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: #c0522a;">${waiterStats ? waiterStats.peopleServed : 0}</div>
+                    </div>
+                    <div style="background: white; padding: 12px; border-radius: 8px; text-align: center; grid-column: 1/-1;">
+                        <div style="font-size: 0.8rem; color: #666;">Kunlik savdo</div>
+                        <div style="font-size: 1.3rem; font-weight: bold; color: #10b981;">${formatPrice(waiterStats ? waiterStats.revenue : 0)}</div>
+                    </div>
+                </div>
+                ${waiterStats ? `
+                <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e0d0c0; font-size: 0.9rem; color: #666;">
+                    <div>O'rtacha chek: <strong>${formatPrice(Math.round(waiterStats.revenue / Math.max(waiterStats.ordersCount, 1)))}</strong></div>
+                </div>
+                ` : '<div style="margin-top: 12px; color: #666; text-align: center;">Tanlangan sanada xizmat ko\'rsatilmagan</div>'}
+            `;
+        };
+
+        await renderWaiterStats();
+        dateInput?.addEventListener('change', renderWaiterStats);
+    } catch (err) {
+        console.error('Waiter stats error:', err);
+        showToast('Statistikani yuklashda xatolik');
+    }
+}
+

@@ -117,6 +117,16 @@ const TableSchema = new mongoose.Schema({
 });
 const Table = mongoose.model('Table', TableSchema);
 
+function buildDateFilter(dateValue, fieldName = 'createdAt') {
+    if (!dateValue) return {};
+    const start = new Date(`${dateValue}T00:00:00`);
+    const end = new Date(`${dateValue}T23:59:59.999`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return null;
+    }
+    return { [fieldName]: { $gte: start, $lte: end } };
+}
+
 // ==================== INITIAL DATA ====================
 async function checkInitialData() {
     const menuCount = await Menu.countDocuments();
@@ -272,13 +282,20 @@ app.get('/api/admin/pending-orders', async (req, res) => {
 
 // 4.5. Kassa uchun faol buyurtmalar (tasdiqlangan va chop etilgan)
 app.get('/api/orders/active', async (req, res) => {
-    const { password } = req.query;
+    const { password, date } = req.query;
     if (password !== 'mingchinor123') {
         return res.status(401).json({ error: 'Parol noto\'g\'ri' });
     }
     
     try {
-        const active = await Order.find({ status: { $in: ['confirmed', 'printed'] } }).sort({ createdAt: -1 });
+        const dateFilter = buildDateFilter(date);
+        if (date && !dateFilter) {
+            return res.status(400).json({ error: 'Sana formati noto\'g\'ri' });
+        }
+        const active = await Order.find({
+            status: { $in: ['confirmed', 'printed'] },
+            ...(dateFilter || {})
+        }).sort({ createdAt: -1 });
         res.json(active);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -327,7 +344,11 @@ app.post('/api/admin/confirm-order/:orderId', async (req, res) => {
 // 6. Barcha buyurtmalar tarixi (admin uchun)
 app.get('/api/admin/orders', async (req, res) => {
     try {
-        const orders = await Order.find().sort({ createdAt: -1 }).limit(100);
+        const dateFilter = buildDateFilter(req.query.date);
+        if (req.query.date && !dateFilter) {
+            return res.status(400).json({ error: 'Sana formati noto\'g\'ri' });
+        }
+        const orders = await Order.find(dateFilter || {}).sort({ createdAt: -1 }).limit(100);
         res.json(orders);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -407,13 +428,20 @@ app.post('/api/admin/retry-print/:orderId', async (req, res) => {
 
 // 8. Sotilgan taomlar bo'yicha hisobot
 app.get('/api/admin/stats/sales', async (req, res) => {
-    const { password } = req.query;
+    const { password, date } = req.query;
     if (password !== 'mingchinor123') {
         return res.status(401).json({ error: 'Parol noto\'g\'ri' });
     }
     
     try {
-        const completedOrders = await Order.find({ status: { $in: ['confirmed', 'printed'] } });
+        const dateFilter = buildDateFilter(date);
+        if (date && !dateFilter) {
+            return res.status(400).json({ error: 'Sana formati noto\'g\'ri' });
+        }
+        const completedOrders = await Order.find({
+            status: { $in: ['confirmed', 'printed', 'completed'] },
+            ...(dateFilter || {})
+        }).sort({ createdAt: -1 });
         
         const itemStats = {};
         const waiterStats = {};

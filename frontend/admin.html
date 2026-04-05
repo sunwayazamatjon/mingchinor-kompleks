@@ -382,7 +382,10 @@
                     </div>
                 </div>
                 <div style="font-size: 0.8rem; color: #8a6a50; font-style: italic;">
-                    Bugungi statistika
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        Sana:
+                        <input type="date" id="waiterOrdersDateFilter" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:10px;">
+                    </label>
                 </div>
             </div>
             
@@ -404,6 +407,7 @@
                     <h4>Savat</h4>
                     <div id="posCartItems"></div>
                     <div class="pos-total">Jami: <span id="posTotal">0</span> so'm</div>
+                    <button class="btn-order-pos" onclick="clearPosCart()" style="background:#64748b; margin-bottom:10px;">Savatni tozalash</button>
                     <button class="btn-order-pos" onclick="placePosOrder()">Zakaz berish</button>
                 </div>
             </div>

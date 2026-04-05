@@ -8,6 +8,14 @@ let currentUser = null;
 let posCart = {};
 let posMenuData = [];
 
+function getTodayDateValue() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function getWaiterOrdersDate() {
+    return document.getElementById('waiterOrdersDateFilter')?.value || getTodayDateValue();
+}
+
 async function checkWaiterLogin() {
     const login = document.getElementById('waiterLogin').value.trim();
     const password = document.getElementById('waiterPassword').value.trim();
@@ -59,6 +67,11 @@ function loginSuccess() {
 
 // Sahifa yuklanganda sessiyani tekshirish
 window.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.getElementById('waiterOrdersDateFilter');
+    if (dateInput) {
+        dateInput.value = getTodayDateValue();
+        dateInput.addEventListener('change', loadOrders);
+    }
     const saved = localStorage.getItem('currentUser');
     if (saved) {
         currentUser = JSON.parse(saved);
@@ -80,7 +93,7 @@ function startAutoRefresh() {
 
 async function loadOrders() {
     try {
-        const response = await fetch(`${API_URL}/api/admin/orders`);
+        const response = await fetch(`${API_URL}/api/admin/orders?date=${encodeURIComponent(getWaiterOrdersDate())}`);
         orders = await response.json();
         renderOrders();
     } catch (err) {
@@ -122,7 +135,7 @@ function renderOrders() {
     let filteredOrders = [];
     
     // Statistika: Jami xizmat ko'rsatilgan mijozlar (faqat tasdiqlangan/chiqarilgan buyurtmalar)
-    const confirmedOrders = orders.filter(o => o.status === 'confirmed' || o.status === 'printed');
+    const confirmedOrders = orders.filter(o => ['confirmed', 'printed', 'completed'].includes(o.status));
     const totalPeople = confirmedOrders.reduce((sum, o) => sum + (o.numberOfPeople || 1), 0);
     const totalPeopleEl = document.getElementById('totalPeopleCount');
     if (totalPeopleEl) totalPeopleEl.textContent = `${totalPeople} ta`;
@@ -433,25 +446,37 @@ async function loadPosMenu() {
 
 function renderPosMenu() {
     const menuDiv = document.getElementById('posMenu');
-    menuDiv.innerHTML = posMenuData.map(item => `
-        <div class="pos-item">
-            <img src="${item.image || 'https://via.placeholder.com/80?text=' + encodeURIComponent(item.emoji)}" alt="${item.name}">
-            <div class="pos-item-name">${item.name}</div>
-            <div class="pos-item-price">${formatPrice(item.price)}</div>
-            <div class="pos-item-controls">
-                <button class="minus" onclick="updatePosCart('${item.id}', -1)">-</button>
-                <span>${posCart[item.id] || 0}</span>
-                <button class="plus" onclick="updatePosCart('${item.id}', 1)">+</button>
+    const availableItems = posMenuData.filter(item => item.available !== false);
+    if (availableItems.length === 0) {
+        menuDiv.innerHTML = '<div style="padding: 24px; text-align:center; color:#64748b;">Hozircha mavjud taomlar yo‘q</div>';
+    } else {
+        menuDiv.innerHTML = availableItems.map(item => `
+            <div class="pos-item">
+                <img src="${item.image || 'https://via.placeholder.com/80?text=' + encodeURIComponent(item.emoji)}" alt="${item.name}">
+                <div class="pos-item-name">${item.name}</div>
+                <div class="pos-item-price">${formatPrice(item.price)}</div>
+                <div class="pos-item-controls">
+                    <button class="minus" onclick="updatePosCart('${item.id}', -1)">-</button>
+                    <span>${posCart[item.id] || 0}</span>
+                    <button class="plus" onclick="updatePosCart('${item.id}', 1)">+</button>
+                </div>
             </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
     renderPosCart();
 }
 
 function updatePosCart(itemId, delta) {
     if (!posCart[itemId]) posCart[itemId] = 0;
     posCart[itemId] += delta;
-    if (posCart[itemId] < 0) posCart[itemId] = 0;
+    if (posCart[itemId] <= 0) {
+        delete posCart[itemId];
+    }
+    renderPosMenu();
+}
+
+function clearPosCart() {
+    posCart = {};
     renderPosMenu();
 }
 
@@ -461,17 +486,17 @@ function renderPosCart() {
     let total = 0;
     let html = '';
     for (const [id, qty] of Object.entries(posCart)) {
-        if (qty > 0) {
-            const item = posMenuData.find(i => i.id === id);
-            if (item) {
-                const itemTotal = item.price * qty;
-                total += itemTotal;
-                html += `<div class="pos-cart-item">
-                    <span>${item.name} x${qty}</span>
-                    <span>${formatPrice(itemTotal)}</span>
-                </div>`;
-            }
+        const item = posMenuData.find(i => i.id == id);
+        if (!item || item.available === false || qty <= 0) {
+            delete posCart[id];
+            continue;
         }
+        const itemTotal = item.price * qty;
+        total += itemTotal;
+        html += `<div class="pos-cart-item">
+            <span>${item.name} x${qty}</span>
+            <span>${formatPrice(itemTotal)}</span>
+        </div>`;
     }
     cartDiv.innerHTML = html;
     totalSpan.textContent = formatPrice(total);
@@ -487,21 +512,22 @@ async function placePosOrder() {
     }
     
     const items = [];
-    for (const [id, qty] of Object.entries(posCart)) {
-        if (qty > 0) {
-            const item = posMenuData.find(i => i.id == id);
-            if (item) {
-                items.push({ 
-                    id: item.id, 
-                    qty: qty, 
-                    name: item.name, 
-                    emoji: item.emoji, 
-                    price: item.price, 
-                    cost: item.cost || 0 
-                });
-            }
+    Object.keys(posCart).forEach(id => {
+        const qty = posCart[id];
+        const item = posMenuData.find(i => i.id == id);
+        if (!item || item.available === false || qty <= 0) {
+            delete posCart[id];
+            return;
         }
-    }
+        items.push({ 
+            id: item.id, 
+            qty: qty, 
+            name: item.name, 
+            emoji: item.emoji, 
+            price: item.price, 
+            cost: item.cost || 0 
+        });
+    });
     
     if (items.length === 0) {
         alert('Kamida bitta taom tanlang!');

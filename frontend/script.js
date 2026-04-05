@@ -11,6 +11,22 @@ let currentTableNumber = null;
 let numberOfPeople = 1;
 let socket = null;
 
+function normalizeCategory(category) {
+    return String(category || '').trim();
+}
+
+function getAvailableMenuItems() {
+    return menuData.filter(item => item.available !== false);
+}
+
+function getItemBadge(item) {
+    return (item?.emoji || '').trim() || (item?.name || '?').trim().charAt(0).toUpperCase() || '?';
+}
+
+function getItemDisplayName(item) {
+    return `${item?.emoji ? `${item.emoji} ` : ''}${item?.name || ''}`.trim();
+}
+
 // ============ DOM ELEMENTLARI ============
 const menuContainer = document.getElementById('menuContainer');
 const categoriesContainer = document.getElementById('categoriesContainer');
@@ -20,6 +36,7 @@ const cartTotalAmount = document.getElementById('cartTotalAmount');
 const cartBadge = document.getElementById('cartBadge');
 const cartIconBtn = document.getElementById('cartIconBtn');
 const closeCartBtn = document.getElementById('closeCartBtn');
+const clearCartBtn = document.getElementById('clearCartBtn');
 const orderBtn = document.getElementById('orderBtn');
 const qrModal = document.getElementById('qrModal');
 const successModal = document.getElementById('successModal');
@@ -95,7 +112,10 @@ async function loadMenuFromAPI() {
             loadTables().catch(() => null)
         ]);
         
-        menuData = await menuRes.json();
+        menuData = (await menuRes.json()).map(item => ({
+            ...item,
+            category: normalizeCategory(item.category)
+        }));
         
         if (configRes && configRes.ok) {
             const configData = await configRes.json();
@@ -118,7 +138,10 @@ async function loadMenuFromAPI() {
 function loadMenuFromLocal() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-        menuData = JSON.parse(stored);
+        menuData = JSON.parse(stored).map(item => ({
+            ...item,
+            category: normalizeCategory(item.category)
+        }));
     } else {
         menuData = getDefaultMenu();
         saveMenuToLocal();
@@ -159,7 +182,10 @@ function saveMenuToLocal() {
 
 // ============ 3. KATEGORIYALAR ============
 function renderCategories() {
-    const categories = ['all', ...new Set(menuData.map(item => item.category))];
+    const categories = ['all', ...new Set(getAvailableMenuItems().map(item => normalizeCategory(item.category)).filter(Boolean))];
+    if (currentCategory !== 'all' && !categories.includes(currentCategory)) {
+        currentCategory = 'all';
+    }
     categoriesContainer.innerHTML = categories.map(cat => `
         <button class="category-chip ${currentCategory === cat ? 'active' : ''}" data-category="${cat}">
             ${cat === 'all' ? '<i class="fas fa-border-all"></i> Barchasi' : cat}
@@ -177,7 +203,7 @@ function renderCategories() {
 
 // ============ 4. MENYUNI RENDER QILISH ============
 function renderMenu() {
-    const availableMenu = menuData.filter(item => item.available !== false);
+    const availableMenu = getAvailableMenuItems();
     const filtered = currentCategory === 'all' 
         ? availableMenu 
         : availableMenu.filter(item => item.category === currentCategory);
@@ -199,10 +225,10 @@ function renderMenu() {
         html += items.map(item => `
             <div class="item-card ${!item.available ? 'unavailable' : ''}" data-id="${item.id}">
                 <div class="item-emoji" onclick='openImageModal(${JSON.stringify(item.image || "")}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.emoji)})'>
-                    ${item.image ? `<img src="${item.image}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 12px;" onerror="this.src='https://via.placeholder.com/48?text=${encodeURIComponent(item.emoji)}'">` : item.emoji}
+                    ${item.image ? `<img src="${item.image}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 12px;" onerror="this.src='https://via.placeholder.com/48?text=${encodeURIComponent(getItemBadge(item))}'">` : getItemBadge(item)}
                 </div>
                 <div class="item-info">
-                    <div class="item-name">${item.name}${!item.available ? ' ⏸️' : ''}</div>
+                    <div class="item-name">${item.name}</div>
                     <div class="item-desc">${item.desc || ''}</div>
                     <div class="item-price">${formatPrice(item.price)}</div>
                 </div>
@@ -261,6 +287,13 @@ function updateQuantity(id, delta) {
     updateCartUI();
 }
 
+function clearCart() {
+    cart = {};
+    saveCartToLocal();
+    updateCartUI();
+    menuData.forEach(item => renderControl(item));
+}
+
 function saveCartToLocal() {
     localStorage.setItem('mingchinor_cart', JSON.stringify(cart));
 }
@@ -274,6 +307,7 @@ function loadCartFromLocal() {
                 delete cart[id];
             }
         });
+        saveCartToLocal();
         updateCartUI();
         menuData.forEach(item => renderControl(item));
     }
@@ -301,7 +335,7 @@ function updateCartUI() {
             ${items.map(e => `
                 <div class="cart-item" style="display: flex; flex-direction: column; align-items: stretch; padding: 12px; gap: 8px;">
                     <div style="display: flex; justify-content: space-between;">
-                        <strong>${e.item.emoji} ${e.item.name}</strong>
+                        <strong>${getItemDisplayName(e.item) || e.item.name}</strong>
                         <span>${formatPrice(e.qty * e.item.price)}</span>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -465,8 +499,8 @@ function closeModal() {
 }
 
 function openImageModal(img, name, emoji) {
-    fullScreenImage.src = img || `https://via.placeholder.com/400?text=${encodeURIComponent(emoji)}`;
-    imageCaption.textContent = `${emoji} ${name}`;
+    fullScreenImage.src = img || `https://via.placeholder.com/400?text=${encodeURIComponent(emoji || name || 'Taom')}`;
+    imageCaption.textContent = `${emoji ? `${emoji} ` : ''}${name}`;
     imageModal.classList.add('open');
 }
 
@@ -566,6 +600,7 @@ function showWaiterCallNotification(data) {
 // ============ 9. EVENT LISTENERLAR ============
 if (cartIconBtn) cartIconBtn.addEventListener('click', () => cartOverlay.classList.add('open'));
 if (closeCartBtn) closeCartBtn.addEventListener('click', () => cartOverlay.classList.remove('open'));
+if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 if (orderBtn) orderBtn.addEventListener('click', placeOrder);
 if (closeSuccessBtn) closeSuccessBtn.addEventListener('click', closeModal);
 if (closeImageModal) closeImageModal.addEventListener('click', closeImageModalHandler);
@@ -609,3 +644,5 @@ connectWebSocket();
 setInterval(() => {
     loadMenuFromAPI();
 }, 10000);
+
+
