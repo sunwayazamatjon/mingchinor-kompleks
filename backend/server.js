@@ -452,6 +452,26 @@ app.post('/api/admin/mark-paid/:orderId', async (req, res) => {
     }
 });
 
+app.post('/api/admin/mark-table-paid/:tableNumber', async (req, res) => {
+    const tableNumber = parseInt(req.params.tableNumber);
+    const { password } = req.query;
+    if (password !== 'mingchinor123') {
+        return res.status(401).json({ error: 'Parol noto\'g\'ri' });
+    }
+
+    try {
+        await Order.updateMany(
+            { tableNumber, status: { $in: ['confirmed', 'printed'] } },
+            { status: 'completed', completedAt: new Date() }
+        );
+        await Table.findOneAndUpdate({ number: tableNumber }, { status: 'free' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Mark table paid error:', err);
+        res.status(500).json({ error: 'Xatolik yuz berdi' });
+    }
+});
+
 // 7. Printerni qayta urinish
 app.post('/api/admin/retry-print/:orderId', async (req, res) => {
     const { orderId } = req.params;

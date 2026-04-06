@@ -177,7 +177,7 @@ function renderOrders() {
         <div class="order-card">
             <div class="order-header">
                 <div>
-                    <span class="order-table">🏠 Stol ${order.tableNumber}</span>
+                    <span class="order-table" style="cursor:pointer;" onclick="openPosForTable(${order.tableNumber}, ${order.numberOfPeople || 1})">Stol ${order.tableNumber}</span>
                     <span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>
                 </div>
                 <div class="order-time">${new Date(order.createdAt).toLocaleString('uz-UZ')}</div>
@@ -218,6 +218,17 @@ function getStatusText(status) {
         completed: '✔️ Yakunlangan'
     };
     return map[status] || status;
+}
+
+function openPosForTable(tableNumber, peopleCount = 1) {
+    const posTab = document.querySelector('.tab-btn[data-tab="pos"]');
+    if (posTab) posTab.click();
+    const tableInput = document.getElementById('posTableNumber');
+    const peopleInput = document.getElementById('posPeopleCount');
+    if (tableInput) tableInput.value = tableNumber;
+    if (peopleInput && !peopleInput.value) peopleInput.value = peopleCount;
+    renderPosCart();
+    document.getElementById('posContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function formatPrice(price) {
@@ -587,3 +598,4 @@ async function placePosOrder() {
         alert('Tarmoq xatosi!');
     }
 }
+

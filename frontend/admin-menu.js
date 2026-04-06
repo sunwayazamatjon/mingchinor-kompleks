@@ -917,23 +917,39 @@ function renderActiveOrders(orders) {
         return;
     }
 
-    // Pлитка шаклида чиқариш
-    container.innerHTML = orders.map(order => `
+    const grouped = Object.values(orders.reduce((acc, order) => {
+        if (!acc[order.tableNumber]) {
+            acc[order.tableNumber] = {
+                tableNumber: order.tableNumber,
+                orders: [],
+                items: [],
+                totalAmount: 0,
+                latestCreatedAt: order.createdAt
+            };
+        }
+        acc[order.tableNumber].orders.push(order);
+        acc[order.tableNumber].items.push(...order.items);
+        acc[order.tableNumber].totalAmount += order.totalAmount;
+        if (new Date(order.createdAt) > new Date(acc[order.tableNumber].latestCreatedAt)) {
+            acc[order.tableNumber].latestCreatedAt = order.createdAt;
+        }
+        return acc;
+    }, {})).sort((a, b) => new Date(b.latestCreatedAt) - new Date(a.latestCreatedAt));
+
+    container.innerHTML = grouped.map(group => `
         <div class="order-card" style="background: white; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #10b981; display: flex; flex-direction: column; gap: 12px;">
             <div class="order-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                <div class="order-table" style="font-size: 1.2rem; font-weight: bold; background: #f0e4d4; padding: 4px 12px; border-radius: 20px; color: #c0522a;">🏠 Stol ${order.tableNumber}</div>
-                <div class="order-time" style="color: #8a6a50; font-size: 0.8rem;">${new Date(order.createdAt).toLocaleString('uz-UZ')}</div>
+                <div class="order-table" style="font-size: 1.2rem; font-weight: bold; background: #f0e4d4; padding: 4px 12px; border-radius: 20px; color: #c0522a;">Stol ${group.tableNumber}</div>
+                <div class="order-time" style="color: #8a6a50; font-size: 0.8rem;">Oxirgi buyurtma: ${new Date(group.latestCreatedAt).toLocaleString('uz-UZ')}</div>
             </div>
-            
+            <div style="font-size: 0.9rem; color: #8a6a50;">Buyurtmalar soni: ${group.orders.length} ta</div>
             <div class="order-items" style="background: #faf7f2; border-radius: 12px; padding: 12px;">
-                ${order.items.map(item => `<div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e0d0c0;"><span>${item.qty}x ${item.emoji ? `${item.emoji} ` : ''}${item.name}</span><span>${formatPrice(item.price * item.qty)}</span></div>`).join('')}
+                ${group.items.map(item => `<div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed #e0d0c0;"><span>${item.qty}x ${item.emoji ? `${item.emoji} ` : ''}${item.name}</span><span>${formatPrice(item.price * item.qty)}</span></div>`).join('')}
             </div>
-            
-            <div style="font-weight: bold; font-size: 1.1rem; text-align: right; color: #c0522a;">Jami: ${formatPrice(order.totalAmount)}</div>
-            
+            <div style="font-weight: bold; font-size: 1.1rem; text-align: right; color: #c0522a;">Jami: ${formatPrice(group.totalAmount)}</div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn-add-item" style="background: #10b981; flex: 1;" onclick="printCustomerReceipt('${order.id}')"><i class="fas fa-print"></i> Chek chiqarish</button>
-                <button class="btn-add-item" style="background: #3b82f6; flex: 1;" onclick="markAsPaid('${order.id}')"><i class="fas fa-check"></i> To'landi</button>
+                <button class="btn-add-item" style="background: #10b981; flex: 1;" onclick="printFinalBill(${group.tableNumber})"><i class="fas fa-print"></i> Umumiy chek</button>
+                <button class="btn-add-item" style="background: #3b82f6; flex: 1;" onclick="markTableAsPaid(${group.tableNumber})"><i class="fas fa-check"></i> Stol yopish</button>
             </div>
         </div>
     `).join('');
@@ -969,6 +985,41 @@ async function markAsPaid(orderId) {
     } catch (err) {
         console.error('Mark paid error:', err);
         showToast('❌ Tarmoq xatosi!');
+    }
+}
+
+async function printFinalBill(tableNumber) {
+    try {
+        const response = await fetch(`${API_URL}/api/admin/print-final-bill/${tableNumber}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: ADMIN_PASSWORD })
+        });
+        if (response.ok) {
+            showToast('Umumiy chek chiqarildi!');
+        } else {
+            showToast('Chek chiqarishda xatolik!');
+        }
+    } catch (err) {
+        console.error('Final bill print error:', err);
+        showToast('Tarmoq xatosi!');
+    }
+}
+
+async function markTableAsPaid(tableNumber) {
+    try {
+        const response = await fetch(`${API_URL}/api/admin/mark-table-paid/${tableNumber}?password=${ADMIN_PASSWORD}`, {
+            method: 'POST'
+        });
+        if (response.ok) {
+            showToast(`Stol ${tableNumber} yopildi!`);
+            loadActiveOrders();
+        } else {
+            showToast('Xatolik yuz berdi!');
+        }
+    } catch (err) {
+        console.error('Mark table paid error:', err);
+        showToast('Tarmoq xatosi!');
     }
 }
 
