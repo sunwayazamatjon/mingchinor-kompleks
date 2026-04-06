@@ -23,7 +23,7 @@ function getPosPeopleCount() {
 
 async function loadSystemConfig() {
     try {
-        const response = await fetch(`${API_URL}/api/config`);
+        const response = await fetch(`${API_URL}/api/config`, { cache: 'no-store' });
         if (!response.ok) return;
         const config = await response.json();
         if (config?.service_fee !== undefined) {
@@ -467,7 +467,7 @@ document.getElementById('refreshBtn')?.addEventListener('click', loadOrders);
 // POS functions
 async function loadPosMenu() {
     try {
-        const response = await fetch(`${API_URL}/api/menu`);
+        const response = await fetch(`${API_URL}/api/menu`, { cache: 'no-store' });
         posMenuData = await response.json();
         renderPosMenu();
     } catch (err) {

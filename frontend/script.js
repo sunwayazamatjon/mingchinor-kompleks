@@ -1,5 +1,6 @@
 // ============ KONFIGURATSIYA ============
 const STORAGE_KEY = 'mingchinor_menu';
+const ORDER_SESSION_KEY = 'mingchinor_has_active_order';
 // API_URL endi config.js dan olinadi
 let SERVICE_FEE_PER_PERSON = 5000;
 
@@ -51,16 +52,24 @@ const closeImageModal = document.getElementById('closeImageModal');
 // ============ 1. STOL TANLASH ============
 let availableTables = [];
 
+function clearTableSession() {
+    currentTableNumber = null;
+    numberOfPeople = 1;
+    localStorage.removeItem('currentTableNumber');
+    localStorage.removeItem('numberOfPeople');
+    localStorage.removeItem(ORDER_SESSION_KEY);
+}
+
 async function loadTables() {
     try {
-        const res = await fetch(`${API_URL}/api/admin/tables`);
+        const res = await fetch(`${API_URL}/api/admin/tables`, { cache: 'no-store' });
         availableTables = await res.json();
     } catch (err) {
         console.error('Tables load error:', err);
     }
 }
 
-function checkTableNumber() {
+async function checkTableNumber() {
     const urlParams = new URLSearchParams(window.location.search);
     const tableFromUrl = urlParams.get('table');
     const peopleFromUrl = urlParams.get('people');
@@ -76,6 +85,14 @@ function checkTableNumber() {
     const savedTable = localStorage.getItem('currentTableNumber');
     const savedPeople = localStorage.getItem('numberOfPeople');
     if (savedTable) {
+        await loadTables();
+        const savedTableInfo = availableTables.find(table => table.number === parseInt(savedTable));
+        const hasActiveOrder = localStorage.getItem(ORDER_SESSION_KEY) === 'true';
+        if (hasActiveOrder && savedTableInfo?.status === 'free') {
+            clearTableSession();
+            document.getElementById('tableSelectorOverlay').style.display = 'flex';
+            return;
+        }
         currentTableNumber = parseInt(savedTable);
         numberOfPeople = parseInt(savedPeople) || 1;
         document.getElementById('tableSelectorOverlay').style.display = 'none';
@@ -107,8 +124,8 @@ document.getElementById('confirmTableBtn')?.addEventListener('click', () => {
 async function loadMenuFromAPI() {
     try {
         const [menuRes, configRes] = await Promise.all([
-            fetch(`${API_URL}/api/menu`),
-            fetch(`${API_URL}/api/config`).catch(() => null),
+            fetch(`${API_URL}/api/menu`, { cache: 'no-store' }),
+            fetch(`${API_URL}/api/config`, { cache: 'no-store' }).catch(() => null),
             loadTables().catch(() => null)
         ]);
         
@@ -121,6 +138,15 @@ async function loadMenuFromAPI() {
             const configData = await configRes.json();
             if (configData && configData.service_fee !== undefined) {
                 SERVICE_FEE_PER_PERSON = configData.service_fee;
+            }
+        }
+
+        if (currentTableNumber && localStorage.getItem(ORDER_SESSION_KEY) === 'true') {
+            const activeTable = availableTables.find(table => table.number === currentTableNumber);
+            if (activeTable?.status === 'free') {
+                clearTableSession();
+                document.getElementById('tableSelectorOverlay').style.display = 'flex';
+                return;
             }
         }
 
@@ -472,6 +498,7 @@ async function placeOrder() {
         
         if (result.success) {
             successModal.classList.add('open');
+            localStorage.setItem(ORDER_SESSION_KEY, 'true');
             cart = {};
             saveCartToLocal();
             updateCartUI();

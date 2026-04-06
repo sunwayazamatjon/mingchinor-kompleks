@@ -121,33 +121,17 @@ body {
     font-size: 14px;
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
     width: auto;
-    padding: 8px 12px;
+    padding: 10px 16px;
     border-radius: 20px;
     white-space: nowrap;
-    display: flex;
-    flex-direction: column;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    font-weight: 700;
 }
 
 .call-waiter-btn:active {
     transform: scale(0.95);
-}
-
-/* Bell animation */
-@keyframes ring {
-    0% { transform: rotate(0deg); }
-    10% { transform: rotate(14deg); }
-    20% { transform: rotate(-8deg); }
-    30% { transform: rotate(14deg); }
-    40% { transform: rotate(-4deg); }
-    50% { transform: rotate(10deg); }
-    60% { transform: rotate(0deg); }
-    100% { transform: rotate(0deg); }
-}
-
-.call-waiter-btn .fa-bell {
-    animation: ring 2s infinite;
 }
 
 .cart-badge {
