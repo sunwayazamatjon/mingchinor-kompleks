@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mingchinor Kafe | Milliy taomlar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Til tanlash overlay */
+        .language-selector-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+
+        .language-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 32px;
+            padding: 40px 24px;
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .lang-logo {
+            font-size: 64px;
+            color: #f59e0b;
+            margin-bottom: 24px;
+            filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.3));
+        }
+
+        .language-card h2 {
+            color: white;
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 32px;
+        }
+
+        .lang-options {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 16px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .lang-btn:hover {
+            background: rgba(245, 158, 11, 0.2);
+            border-color: #f59e0b;
+            transform: translateY(-2px);
+        }
+
+        .lang-flag {
+            width: 28px;
+            height: 20px;
+            object-fit: cover;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Til tanlash overlay -->
+        <div class="language-selector-overlay" id="languageSelectorOverlay" style="display: none;">
+            <div class="language-card">
+                <div class="lang-logo">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <h2>Muloqot tilini tanlang</h2>
+                <div class="lang-options">
+                    <button class="lang-btn" onclick="selectLanguage('uz')">
+                        <img src="https://flagcdn.com/w40/uz.png" class="lang-flag" alt="UZ"> O'zbekcha
+                    </button>
+                    <button class="lang-btn" onclick="selectLanguage('ru')">
+                        <img src="https://flagcdn.com/w40/ru.png" class="lang-flag" alt="RU"> Русский
+                    </button>
+                    <button class="lang-btn" onclick="selectLanguage('en')">
+                        <img src="https://flagcdn.com/w40/us.png" class="lang-flag" alt="EN"> English
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stol tanlash overlay -->
+        <div class="table-selector-overlay" id="tableSelectorOverlay" style="display: none;">
+            <div class="table-selector-card">
+                <div class="table-selector-icon">
+                    <i class="fas fa-chair"></i>
+                </div>
+                <h2 id="tWelcomeTitle">Sizni ko'rib turganimizdan xursandmiz!</h2>
+                <p id="tWelcomeSubtitle">Iltimos, stol raqamingizni kiriting</p>
+                <div class="table-number-input">
+                    <input type="number" id="tableNumberInput" placeholder="00" min="1" max="100">
+                </div>
+                <div class="people-number-input">
+                    <label id="tHowManyPeople"><i class="fas fa-users"></i> Necha kishi?</label>
+                    <input type="number" id="peopleCountInput" placeholder="1" min="1" max="20" value="1">
+                </div>
+                <button class="btn-confirm-table" id="confirmTableBtn">
+                    <i class="fas fa-check"></i> <span id="tConfirm">Tasdiqlash</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo-wrapper">
+                    <div class="logo-icon">
+                        <i class="fas fa-utensils"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>Mingchinor</h1>
+                        <p id="tHeaderSub">Milliy taomlar</p>
+                    </div>
+                </div>
+                <div class="header-buttons">
+                    <button class="call-waiter-btn" id="callWaiterBtn">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="cart-icon-btn" id="cartIconBtn">
+                        <i class="fas fa-shopping-basket"></i>
+                        <span class="cart-badge" id="cartBadge">0</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Category Tabs -->
+        <div class="categories-wrapper">
+            <div class="categories-container" id="categoriesContainer">
+                <button class="category-chip active" data-category="all" id="tCategoryAll">
+                    <i class="fas fa-border-all"></i> <span id="tAllText">Barchasi</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Menu Items -->
+        <main class="menu-container" id="menuContainer">
+            <div class="loading-spinner" id="tLoading">
+                <i class="fas fa-spinner fa-pulse"></i> Menyu yuklanmoqda...
+            </div>
+        </main>
+
+        <div class="cart-overlay" id="cartOverlay">
+            <div class="cart-sidebar">
+                <div class="cart-header">
+                    <h3><i class="fas fa-shopping-basket"></i> <span id="tCartTitle">Savatcha</span></h3>
+                    <button class="close-cart" id="closeCartBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="cart-items" id="cartItemsList">
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p id="tEmptyCart">Savat hozircha bo'sh</p>
+                    </div>
+                </div>
+                <div class="cart-footer">
+                    <div class="cart-total">
+                        <span id="tTotalLabel">Jami:</span>
+                        <strong id="cartTotalAmount">0 so'm</strong>
+                    </div>
+                    <button class="btn-order" id="orderBtn">
+                        <i class="fas fa-check-circle"></i> <span id="tOrderBtnText">Buyurtma berish</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="qrModal">
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3><i class="fas fa-qrcode"></i> <span id="tQrTitle">QR kodni skanerlang</span></h3>
+                    <button class="close-modal" id="closeQrModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="qr-reader" style="width: 100%;"></div>
+                    <div id="qr-result" class="qr-result"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-overlay" id="successModal">
+            <div class="modal-container success-modal">
+                <div class="modal-body text-center">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <h3 id="tOrderSuccess">Buyurtma qabul qilindi!</h3>
+                    <p id="tOrderSuccessDesc">Tez orada ofitsiant siz bilan bog'lanadi. Rahmat!</p>
+                    <button class="btn-primary" id="closeSuccessBtn"><span id="tCloseBtn">Yopish</span></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div class="toast-notification" id="toast"></div>
+
+        <!-- Ofisant panel overlay -->
+        <div class="waiter-panel-overlay" id="waiterPanelOverlay" onclick="closeWaiterPanel()"></div>
+        
+        <div class="waiter-panel" id="waiterPanel">
+            <button class="waiter-panel-close" onclick="closeWaiterPanel()"><i class="fas fa-times"></i></button>
+            <div class="waiter-panel-handle"></div>
+            <div class="waiter-panel-title"><i class="fas fa-concierge-bell" style="color:#f59e0b;"></i> <span id="tCallWaiterTitle">Ofisant chaqirish</span></div>
+            <div class="waiter-panel-subtitle" id="tCallWaiterSubtitle">Ofisant sizning stolingizga keladi</div>
+            <div class="waiter-panel-info">
+                <div class="waiter-info-item">
+                    <div class="waiter-info-label" id="tWpTableNumLabel">Stol raqami</div>
+                    <div class="waiter-info-value" id="wpTableNum">—</div>
+                </div>
+                <div class="waiter-info-item">
+                    <div class="waiter-info-label" id="tWpPeopleLabel">Kishilar soni</div>
+                    <div class="waiter-info-value" id="wpPeople">—</div>
+                </div>
+            </div>
+            <button class="btn-call-waiter-big" id="bigCallWaiterBtn" onclick="callWaiter(); closeWaiterPanel();">
+                <i class="fas fa-bell"></i> <span id="tBtnCallWaiterBig">Ofisantni chaqirish</span>
+            </button>
+        </div>
+
+        <!-- Rasm to'liq ekranda ko'rish modali -->
+        <div class="image-modal-overlay" id="imageModal">
+            <button class="image-modal-close" id="closeImageModal"><i class="fas fa-times"></i></button>
+            <div class="image-modal-container">
+                <img id="fullScreenImage" src="" alt="Taom rasmi">
+                <div class="image-modal-caption" id="imageCaption"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="translations.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
