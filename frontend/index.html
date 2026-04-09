@@ -365,14 +365,17 @@
                 <div class="language-selector-icon">
                     <i class="fas fa-globe"></i>
                 </div>
-                <h2>Mingchinor ga xush kelibsiz!</h2>
-                <p>Iltimos, tilni tanlang</p>
+                <h2 id="languageTitle">Mingchinor ga xush kelibsiz!</h2>
+                <p id="languageDescription">Iltimos, tilni tanlang</p>
                 <div class="language-options">
-                    <button class="language-btn selected" data-lang="uz">
+                    <button class="language-btn selected" data-lang="uz" id="languageBtnUz">
                         <i class="fas fa-flag"></i> O'zbek
                     </button>
-                    <button class="language-btn" data-lang="ru">
+                    <button class="language-btn" data-lang="ru" id="languageBtnRu">
                         <i class="fas fa-flag"></i> Русский
+                    </button>
+                    <button class="language-btn" data-lang="en" id="languageBtnEn">
+                        <i class="fas fa-flag"></i> English
                     </button>
                 </div>
             </div>
@@ -384,17 +387,17 @@
                 <div class="table-selector-icon">
                     <i class="fas fa-chair"></i>
                 </div>
-                <h2>Mingchinor ga xush kelibsiz!</h2>
-                <p>Iltimos, stolingiz raqamini va kishilar sonini kiriting</p>
+                <h2 id="tableTitle">Mingchinor ga xush kelibsiz!</h2>
+                <p id="tableDescription">Iltimos, stolingiz raqamini va kishilar sonini kiriting</p>
                 <div class="table-number-input">
                     <input type="number" id="tableNumberInput" placeholder="Stol raqami" min="1" max="50" autofocus>
                 </div>
                 <div class="people-number-input">
-                    <label><i class="fas fa-users"></i> Necha kishi?</label>
+                    <label id="peopleLabel"><i class="fas fa-users"></i> Necha kishi?</label>
                     <input type="number" id="peopleCountInput" placeholder="Kishilar soni" min="1" max="20" value="1">
                 </div>
                 <button class="btn-confirm-table" id="confirmTableBtn">
-                    <i class="fas fa-check"></i> Tasdiqlash
+                    <i class="fas fa-check"></i> <span id="confirmTableText">Tasdiqlash</span>
                 </button>
             </div>
         </div>
@@ -414,6 +417,7 @@
                 <div class="header-buttons">
                     <button class="call-waiter-btn" id="callWaiterBtn">
                         <i class="fas fa-bell"></i>
+                        <span id="callWaiterText">Ofisant chaqirish</span>
                     </button>
                     <button class="cart-icon-btn" id="cartIconBtn">
                         <i class="fas fa-shopping-basket"></i>
@@ -434,7 +438,7 @@
 
         <!-- Menu Items -->
         <main class="menu-container" id="menuContainer">
-            <div class="loading-spinner">
+            <div class="loading-spinner" id="loadingText">
                 <i class="fas fa-spinner fa-pulse"></i> Menyu yuklanmoqda...
             </div>
         </main>
@@ -485,8 +489,8 @@
             <div class="modal-container success-modal">
                 <div class="modal-body text-center">
                     <i class="fas fa-check-circle success-icon"></i>
-                    <h3>Buyurtma qabul qilindi!</h3>
-                    <p>Tez orada ofitsiant siz bilan bog'lanadi. Rahmat!</p>
+                    <h3 id="successTitle">Buyurtma qabul qilindi!</h3>
+                    <p id="successText">Tez orada ofitsiant siz bilan bog'lanadi. Rahmat!</p>
                     <button class="btn-primary" id="closeSuccessBtn">Yopish</button>
                 </div>
             </div>

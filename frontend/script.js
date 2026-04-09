@@ -5,6 +5,64 @@ const LANGUAGE_KEY = 'mingchinor_language';
 let SERVICE_FEE_PER_PERSON = 5000;
 let currentLanguage = sessionStorage.getItem(LANGUAGE_KEY) || 'uz';
 
+const TEXTS = {
+    uz: {
+        welcome: "Mingchinor ga xush kelibsiz!",
+        selectLanguage: "Iltimos, tilni tanlang",
+        selectTable: "Iltimos, stolingiz raqamini va kishilar sonini kiriting",
+        peopleCount: "Necha kishi?",
+        confirm: "Tasdiqlash",
+        callWaiter: "Ofisant chaqirish",
+        allCategories: "Barchasi",
+        orderButton: "Buyurtma berish",
+        menuLoading: "Menyu yuklanmoqda...",
+        orderSuccessTitle: "Buyurtma qabul qilindi!",
+        orderSuccessText: "Tez orada ofitsiant siz bilan bog'lanadi. Rahmat!",
+        cartEmpty: "Savat hozircha bo'sh",
+        missingTable: "Iltimos, avval stol raqamini tanlang!",
+        waiterCalled: "📢 Stol {table} ofisant chaqirildi!",
+        missingTableAndLanguage: "Iltimos, avval stol va tilni tanlang!"
+    },
+    ru: {
+        welcome: "Добро пожаловать в Mingchinor!",
+        selectLanguage: "Пожалуйста, выберите язык",
+        selectTable: "Пожалуйста, введите номер стола и количество гостей",
+        peopleCount: "Сколько человек?",
+        confirm: "Подтвердить",
+        callWaiter: "Вызвать официанта",
+        allCategories: "Все",
+        orderButton: "Оформить заказ",
+        menuLoading: "Загрузка меню...",
+        orderSuccessTitle: "Заказ принят!",
+        orderSuccessText: "Официант скоро с вами свяжется. Спасибо!",
+        cartEmpty: "Корзина пока пуста",
+        missingTable: "Пожалуйста, сначала выберите стол!",
+        waiterCalled: "📢 Стол {table} вызвал официанта!",
+        missingTableAndLanguage: "Пожалуйста, сначала выберите стол и язык!"
+    },
+    en: {
+        welcome: "Welcome to Mingchinor!",
+        selectLanguage: "Please select a language",
+        selectTable: "Please enter your table number and guest count",
+        peopleCount: "How many people?",
+        confirm: "Confirm",
+        callWaiter: "Call Waiter",
+        allCategories: "All",
+        orderButton: "Place Order",
+        menuLoading: "Loading menu...",
+        orderSuccessTitle: "Order Confirmed!",
+        orderSuccessText: "A waiter will be with you shortly. Thank you!",
+        cartEmpty: "The cart is empty",
+        missingTable: "Please select your table first!",
+        waiterCalled: "📢 Table {table} requested a waiter!",
+        missingTableAndLanguage: "Please select your table and language first!"
+    }
+};
+
+function t(key) {
+    return TEXTS[currentLanguage]?.[key] || TEXTS.uz[key] || key;
+}
+
 // ============ GLOBAL O‘ZGARUVCHILAR ============
 let menuData = [];
 let cart = {};
@@ -37,8 +95,10 @@ const languageBtns = document.querySelectorAll('.language-btn');
 
 // ============ TIL TANLASH ============
 function initLanguageSelector() {
-    // Agar til allaqachon tanlangan bo'lsa, selector ko'rsatmasdan davom et
-    if (sessionStorage.getItem(LANGUAGE_KEY)) {
+    const savedLang = sessionStorage.getItem(LANGUAGE_KEY);
+    if (savedLang) {
+        currentLanguage = savedLang;
+        languageBtns.forEach(btn => btn.classList.toggle('selected', btn.dataset.lang === savedLang));
         languageSelectorOverlay.style.display = 'none';
         initApp();
         return;
@@ -51,6 +111,7 @@ function initLanguageSelector() {
             const lang = btn.dataset.lang;
             selectLanguage(lang);
         });
+        btn.classList.toggle('selected', btn.dataset.lang === currentLanguage);
     });
 }
 
@@ -67,11 +128,40 @@ function selectLanguage(lang) {
     // Selector overlayni yashir va appni ishga tushir
     setTimeout(() => {
         languageSelectorOverlay.style.display = 'none';
+        translateUI();
         initApp();
     }, 500);
 }
 
+function translateUI() {
+    const languageTitle = document.getElementById('languageTitle');
+    const languageDescription = document.getElementById('languageDescription');
+    const tableTitle = document.getElementById('tableTitle');
+    const tableDescription = document.getElementById('tableDescription');
+    const peopleLabel = document.getElementById('peopleLabel');
+    const confirmTableText = document.getElementById('confirmTableText');
+    const callWaiterText = document.getElementById('callWaiterText');
+    const loadingText = document.getElementById('loadingText');
+    const successTitle = document.getElementById('successTitle');
+    const successText = document.getElementById('successText');
+
+    if (languageTitle) languageTitle.textContent = t('welcome');
+    if (languageDescription) languageDescription.textContent = t('selectLanguage');
+    if (tableTitle) tableTitle.textContent = t('welcome');
+    if (tableDescription) tableDescription.textContent = t('selectTable');
+    if (peopleLabel) peopleLabel.innerHTML = `<i class="fas fa-users"></i> ${t('peopleCount')}`;
+    if (confirmTableText) confirmTableText.textContent = t('confirm');
+    if (callWaiterText) callWaiterText.textContent = t('callWaiter');
+    if (loadingText) loadingText.innerHTML = `<i class="fas fa-spinner fa-pulse"></i> ${t('menuLoading')}`;
+    if (successTitle) successTitle.textContent = t('orderSuccessTitle');
+    if (successText) successText.textContent = t('orderSuccessText');
+
+    if (cartBadge) cartBadge.textContent = cartBadge.textContent || '0';
+    if (orderBtn) orderBtn.innerHTML = `<i class="fas fa-check-circle"></i> ${t('orderButton')}`;
+}
+
 function initApp() {
+    translateUI();
     // Stol tanlashni tekshirish
     if (document.getElementById('tableSelectorOverlay')) {
         checkTableNumber();
@@ -209,10 +299,10 @@ function saveMenuToLocal() {
 
 // ============ 3. KATEGORIYALAR ============
 function renderCategories() {
-    const categories = ['all', ...new Set(menuData.map(item => item.category))];
+    const categories = ['all', ...new Set(menuData.map(item => item.category).filter(cat => !cat.toLowerCase().includes('shashlik')) )];
     categoriesContainer.innerHTML = categories.map(cat => `
         <button class="category-chip ${currentCategory === cat ? 'active' : ''}" data-category="${cat}">
-            ${cat === 'all' ? '<i class="fas fa-border-all"></i> Barchasi' : cat}
+            ${cat === 'all' ? `<i class="fas fa-border-all"></i> ${t('allCategories')}` : cat}
         </button>
     `).join('');
     
@@ -542,7 +632,7 @@ function connectWebSocket() {
 
 function callWaiter() {
     if (!currentTableNumber) {
-        alert('Iltimos, avval stol raqamini tanlang!');
+        alert(t('missingTable'));
         return;
     }
     
@@ -563,7 +653,8 @@ function callWaiter() {
         body: JSON.stringify(callData)
     }).catch(e => console.warn('REST waiter-call error:', e));
     
-    showToast('📢 Stol ' + currentTableNumber + ' ofisant chaqirildi!');
+    const toastText = t('waiterCalled').replace('{table}', currentTableNumber);
+    showToast(toastText);
     
     const btn = document.getElementById('callWaiterBtn');
     if (btn) {
@@ -617,8 +708,8 @@ if (closeImageModal) closeImageModal.addEventListener('click', closeImageModalHa
 if (imageModal) imageModal.addEventListener('click', (e) => {
     if (e.target === imageModal) closeImageModalHandler();
 });
-// Bell tugmasi endi waiter panelini ochadi
-if (callWaiterBtn) callWaiterBtn.addEventListener('click', openWaiterPanel);
+// Bell tugmasi endi bevosita ofisant chaqiradi
+if (callWaiterBtn) callWaiterBtn.addEventListener('click', callWaiter);
 
 function openWaiterPanel() {
     const panel = document.getElementById('waiterPanel');
