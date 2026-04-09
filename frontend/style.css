@@ -116,23 +116,22 @@ body {
 }
 
 .call-waiter-btn {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
-    font-size: 22px;
-    width: 52px;
-    height: 52px;
-    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
-    animation: pulseWaiterBtn 1.6s ease-in-out infinite;
-}
-
-@keyframes pulseWaiterBtn {
-    0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
-    50%  { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    width: auto;
+    padding: 10px 16px;
+    border-radius: 20px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
 }
 
 .call-waiter-btn:active {
-    transform: scale(0.92);
+    transform: scale(0.95);
 }
 
 .cart-badge {
@@ -674,6 +673,76 @@ body {
     100% { transform: scale(1); }
 }
 
+/* Image Modal */
+.image-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 4000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.image-modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+}
+
+.image-modal-container {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+
+.image-modal-container img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 12px;
+}
+
+.image-modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+}
+
+.image-modal-close:hover {
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.image-modal-caption {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    text-align: center;
+}
+
 /* ================= LOGIN & ADMIN ================= */
 .login-overlay {
     position: fixed;
@@ -759,79 +828,4 @@ body {
     margin-top: 15px;
     font-size: 14px;
     font-weight: 600;
-}
-
-/* ========== IMAGE MODAL (TO'LIQ EKRAN RASM) ========== */
-.image-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.92);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 5000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.25s ease;
-    padding: 16px;
-}
-
-.image-modal-overlay.open {
-    opacity: 1;
-    pointer-events: all;
-}
-
-.image-modal-container {
-    position: relative;
-    max-width: 92vw;
-    max-height: 88vh;
-    animation: modalZoomIn 0.25s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-@keyframes modalZoomIn {
-    from { transform: scale(0.85); opacity: 0; }
-    to   { transform: scale(1); opacity: 1; }
-}
-
-.image-modal-container img {
-    max-width: 100%;
-    max-height: 75vh;
-    object-fit: contain;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-
-.image-modal-caption {
-    color: white;
-    font-size: 18px;
-    font-weight: 700;
-    margin-top: 16px;
-    text-align: center;
-}
-
-.image-modal-close {
-    position: absolute;
-    top: -14px;
-    right: -14px;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.15);
-    border: 2px solid rgba(255,255,255,0.3);
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    backdrop-filter: blur(6px);
-}
-
-.image-modal-close:hover {
-    background: rgba(255,255,255,0.3);
-    transform: scale(1.1);
 }

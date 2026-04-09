@@ -1,5 +1,6 @@
 // ============ KONFIGURATSIYA ============
 const STORAGE_KEY = 'mingchinor_menu';
+const ORDER_SESSION_KEY = 'mingchinor_has_active_order';
 // API_URL endi config.js dan olinadi
 let SERVICE_FEE_PER_PERSON = 5000;
 
@@ -9,8 +10,23 @@ let cart = {};
 let currentCategory = 'all';
 let currentTableNumber = null;
 let numberOfPeople = 1;
-let currentLanguage = localStorage.getItem('selectedLanguage') || null;
 let socket = null;
+
+function normalizeCategory(category) {
+    return String(category || '').trim();
+}
+
+function getAvailableMenuItems() {
+    return menuData.filter(item => item.available !== false);
+}
+
+function getItemBadge(item) {
+    return (item?.emoji || '').trim() || (item?.name || '?').trim().charAt(0).toUpperCase() || '?';
+}
+
+function getItemDisplayName(item) {
+    return `${item?.emoji ? `${item.emoji} ` : ''}${item?.name || ''}`.trim();
+}
 
 // ============ DOM ELEMENTLARI ============
 const menuContainer = document.getElementById('menuContainer');
@@ -21,6 +37,7 @@ const cartTotalAmount = document.getElementById('cartTotalAmount');
 const cartBadge = document.getElementById('cartBadge');
 const cartIconBtn = document.getElementById('cartIconBtn');
 const closeCartBtn = document.getElementById('closeCartBtn');
+const clearCartBtn = document.getElementById('clearCartBtn');
 const orderBtn = document.getElementById('orderBtn');
 const qrModal = document.getElementById('qrModal');
 const successModal = document.getElementById('successModal');
@@ -35,75 +52,24 @@ const closeImageModal = document.getElementById('closeImageModal');
 // ============ 1. STOL TANLASH ============
 let availableTables = [];
 
+function clearTableSession() {
+    currentTableNumber = null;
+    numberOfPeople = 1;
+    localStorage.removeItem('currentTableNumber');
+    localStorage.removeItem('numberOfPeople');
+    localStorage.removeItem(ORDER_SESSION_KEY);
+}
+
 async function loadTables() {
     try {
-        const res = await fetch(`${API_URL}/api/admin/tables`);
+        const res = await fetch(`${API_URL}/api/admin/tables`, { cache: 'no-store' });
         availableTables = await res.json();
     } catch (err) {
         console.error('Tables load error:', err);
     }
 }
 
-// ============ 0. TIL TANLASH ============
-function selectLanguage(lang) {
-    currentLanguage = lang;
-    localStorage.setItem('selectedLanguage', lang);
-    document.getElementById('languageSelectorOverlay').style.display = 'none';
-    applyLanguage();
-    checkTableNumber();
-}
-
-function applyLanguage() {
-    if (!currentLanguage || !translations[currentLanguage]) return;
-    const t = translations[currentLanguage];
-    
-    // UI Elementlarini tarjima qilish
-    const elements = {
-        'tWelcomeTitle': t.welcomeTitle,
-        'tWelcomeSubtitle': t.welcomeSubtitle,
-        'tHowManyPeople': `<i class="fas fa-users"></i> ${t.howManyPeople}`,
-        'tableNumberInput': { placeholder: t.tableNumber }, // Special case for placeholder
-        'peopleCountInput': { placeholder: t.perPerson },
-        'tConfirm': t.confirm,
-        'tHeaderSub': t.headerSub || t.uz.headerSub, // Fallback if missing
-        'tAllText': t.all,
-        'tLoading': `<i class="fas fa-spinner fa-pulse"></i> ${t.loading}`,
-        'tCartTitle': t.cart,
-        'tEmptyCart': t.emptyCart,
-        'tTotalLabel': t.total,
-        'tOrderBtnText': t.order,
-        'tQrTitle': t.qrTitle,
-        'tOrderSuccess': t.orderSuccess,
-        'tOrderSuccessDesc': t.orderSuccessDesc,
-        'tCloseBtn': t.close,
-        'tCallWaiterTitle': t.callWaiter,
-        'tCallWaiterSubtitle': t.waiterComing,
-        'tWpTableNumLabel': t.tableNumber,
-        'tWpPeopleLabel': t.howManyPeople,
-        'tBtnCallWaiterBig': t.btnCall
-    };
-
-    for (const [id, value] of Object.entries(elements)) {
-        const el = document.getElementById(id);
-        if (el) {
-            if (typeof value === 'object' && value.placeholder) {
-                el.placeholder = value.placeholder;
-            } else {
-                el.innerHTML = value;
-            }
-        }
-    }
-}
-
-function checkTableNumber() {
-    // Agar til tanlanmagan bo'lsa, avval til tanlashni ko'rsatish
-    if (!currentLanguage) {
-        document.getElementById('languageSelectorOverlay').style.display = 'flex';
-        return;
-    }
-
-    applyLanguage();
-
+async function checkTableNumber() {
     const urlParams = new URLSearchParams(window.location.search);
     const tableFromUrl = urlParams.get('table');
     const peopleFromUrl = urlParams.get('people');
@@ -119,6 +85,14 @@ function checkTableNumber() {
     const savedTable = localStorage.getItem('currentTableNumber');
     const savedPeople = localStorage.getItem('numberOfPeople');
     if (savedTable) {
+        await loadTables();
+        const savedTableInfo = availableTables.find(table => table.number === parseInt(savedTable));
+        const hasActiveOrder = localStorage.getItem(ORDER_SESSION_KEY) === 'true';
+        if (hasActiveOrder && savedTableInfo?.status === 'free') {
+            clearTableSession();
+            document.getElementById('tableSelectorOverlay').style.display = 'flex';
+            return;
+        }
         currentTableNumber = parseInt(savedTable);
         numberOfPeople = parseInt(savedPeople) || 1;
         document.getElementById('tableSelectorOverlay').style.display = 'none';
@@ -142,7 +116,7 @@ document.getElementById('confirmTableBtn')?.addEventListener('click', () => {
         document.getElementById('tableSelectorOverlay').style.display = 'none';
         loadMenuFromAPI();
     } else {
-        alert(translations[currentLanguage]?.selectTableFirst || 'Iltimos, stol raqami va kishilar sonini kiriting!');
+        alert('Iltimos, stol raqami va kishilar sonini kiriting!');
     }
 });
 
@@ -150,17 +124,29 @@ document.getElementById('confirmTableBtn')?.addEventListener('click', () => {
 async function loadMenuFromAPI() {
     try {
         const [menuRes, configRes] = await Promise.all([
-            fetch(`${API_URL}/api/menu`),
-            fetch(`${API_URL}/api/config`).catch(() => null),
+            fetch(`${API_URL}/api/menu`, { cache: 'no-store' }),
+            fetch(`${API_URL}/api/config`, { cache: 'no-store' }).catch(() => null),
             loadTables().catch(() => null)
         ]);
         
-        menuData = await menuRes.json();
+        menuData = (await menuRes.json()).map(item => ({
+            ...item,
+            category: normalizeCategory(item.category)
+        }));
         
         if (configRes && configRes.ok) {
             const configData = await configRes.json();
             if (configData && configData.service_fee !== undefined) {
                 SERVICE_FEE_PER_PERSON = configData.service_fee;
+            }
+        }
+
+        if (currentTableNumber && localStorage.getItem(ORDER_SESSION_KEY) === 'true') {
+            const activeTable = availableTables.find(table => table.number === currentTableNumber);
+            if (activeTable?.status === 'free') {
+                clearTableSession();
+                document.getElementById('tableSelectorOverlay').style.display = 'flex';
+                return;
             }
         }
 
@@ -178,7 +164,10 @@ async function loadMenuFromAPI() {
 function loadMenuFromLocal() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-        menuData = JSON.parse(stored);
+        menuData = JSON.parse(stored).map(item => ({
+            ...item,
+            category: normalizeCategory(item.category)
+        }));
     } else {
         menuData = getDefaultMenu();
         saveMenuToLocal();
@@ -190,8 +179,26 @@ function loadMenuFromLocal() {
 
 function getDefaultMenu() {
     return [
-        { id: 1, emoji: "🥣", name_uz: "Mastava", name_ru: "Мастава", name_en: "Mastava", desc_uz: "Qo'zichoq go'shti, sabzavotlar", price: 28000, category_uz: "🍜 Birinchi taomlar", available: true },
-        // ... boshqa default taomlar (asosan API dan keladi)
+        { id: 1, emoji: "🥣", name: "Mastava", desc: "Qo'zichoq go'shti, sabzavotlar", cost: 18000, price: 28000, category: "🍜 Birinchi taomlar", available: true, image: "" },
+        { id: 2, emoji: "🍲", name: "Shurva", desc: "Qo'y go'shti, karam, sabzi", cost: 15000, price: 25000, category: "🍜 Birinchi taomlar", available: true, image: "" },
+        { id: 3, emoji: "🥘", name: "Lagman", desc: "El noodles, go'sht, sabzavot", cost: 20000, price: 32000, category: "🍜 Birinchi taomlar", available: true, image: "" },
+        { id: 4, emoji: "🫕", name: "Moshxo'rda", desc: "Mosh, guruch, yog'", cost: 12000, price: 22000, category: "🍜 Birinchi taomlar", available: true, image: "" },
+        { id: 5, emoji: "🍚", name: "Osh (Palov)", desc: "Qo'zichoq go'shti, sabzi, guruch", cost: 22000, price: 38000, category: "🍽️ Ikkinchi taomlar", available: true, image: "" },
+        { id: 6, emoji: "🥩", name: "Kabob", desc: "Qo'y go'shti, zira, piyoz", cost: 28000, price: 45000, category: "🍽️ Ikkinchi taomlar", available: true, image: "" },
+        { id: 7, emoji: "🫔", name: "Dimlama", desc: "Go'sht, kartoshka, sabzavotlar", cost: 20000, price: 35000, category: "🍽️ Ikkinchi taomlar", available: true, image: "" },
+        { id: 8, emoji: "🍗", name: "Tovuq qovurma", desc: "Basmati guruch bilan", cost: 25000, price: 40000, category: "🍽️ Ikkinchi taomlar", available: true, image: "" },
+        { id: 9, emoji: "🥗", name: "Achichuk salat", desc: "Pomidor, bodring, piyoz, ko'k", cost: 8000, price: 15000, category: "🍽️ Ikkinchi taomlar", available: true, image: "" },
+        { id: 10, emoji: "🫓", name: "Patir non", desc: "Tandirda pishirilgan", cost: 4000, price: 8000, category: "🫓 Non va sneklar", available: true, image: "" },
+        { id: 11, emoji: "🥙", name: "Somsa", desc: "Go'shtli, yangi pishirilgan", cost: 6000, price: 12000, category: "🫓 Non va sneklar", available: true, image: "" },
+        { id: 12, emoji: "🥟", name: "Manti", desc: "Qo'y go'shti bilan (6 dona)", cost: 18000, price: 30000, category: "🫓 Non va sneklar", available: true, image: "" },
+        { id: 13, emoji: "🍵", name: "Ko'k choy", desc: "Chinni piyolada", cost: 3000, price: 8000, category: "🧃 Ichimliklar", available: true, image: "" },
+        { id: 14, emoji: "☕", name: "Qora choy", desc: "Limon bilan", cost: 3000, price: 8000, category: "🧃 Ichimliklar", available: true, image: "" },
+        { id: 15, emoji: "🧃", name: "Sharbat", desc: "Mavsumiy mevalar", cost: 8000, price: 18000, category: "🧃 Ichimliklar", available: true, image: "" },
+        { id: 16, emoji: "🥛", name: "Ayron", desc: "Yangi, sovuq", cost: 5000, price: 12000, category: "🧃 Ichimliklar", available: true, image: "" },
+        { id: 17, emoji: "💧", name: "Mineral suv", desc: "Gaz'li / gaz'siz (0.5L)", cost: 3000, price: 7000, category: "🧃 Ichimliklar", available: true, image: "" },
+        { id: 18, emoji: "🍯", name: "Halva", desc: "An'anaviy, yong'oq bilan", cost: 10000, price: 20000, category: "🍰 Shirinliklar", available: true, image: "" },
+        { id: 19, emoji: "🍮", name: "Murabbo", desc: "O'rik murabbo, qaymoq", cost: 7000, price: 15000, category: "🍰 Shirinliklar", available: true, image: "" },
+        { id: 20, emoji: "🍩", name: "Pishiriqlar", desc: "Kunlik assortment", cost: 7000, price: 14000, category: "🍰 Shirinliklar", available: true, image: "" }
     ];
 }
 
@@ -201,18 +208,23 @@ function saveMenuToLocal() {
 
 // ============ 3. KATEGORIYALAR ============
 function renderCategories() {
-    const lang = currentLanguage || 'uz';
-    const categories = ['all', ...new Set(menuData.map(item => item['category_' + lang]))];
-    
-    categoriesContainer.innerHTML = categories.map(cat => {
-        const isAll = cat === 'all';
-        const label = isAll ? translations[lang].all : cat;
-        return `
-            <button class="category-chip ${currentCategory === cat ? 'active' : ''}" data-category="${cat}">
-                ${isAll ? '<i class="fas fa-border-all"></i>' : ''} ${label}
-            </button>
-        `;
-    }).join('');
+    const availableCategories = [...new Set(getAvailableMenuItems().map(item => normalizeCategory(item.category)).filter(Boolean))];
+    const fallbackCategories = [...new Set(menuData.map(item => normalizeCategory(item.category)).filter(Boolean))];
+    const categoryList = availableCategories.length > 0 ? availableCategories : fallbackCategories;
+    const categories = ['all', ...categoryList];
+    if (currentCategory !== 'all' && !categories.includes(currentCategory)) {
+        currentCategory = 'all';
+    }
+    const wrapper = document.querySelector('.categories-wrapper');
+    if (wrapper) {
+        wrapper.style.display = categories.length > 1 ? 'block' : 'none';
+    }
+    if (!categoriesContainer) return;
+    categoriesContainer.innerHTML = categories.map(cat => `
+        <button class="category-chip ${currentCategory === cat ? 'active' : ''}" data-category="${cat}">
+            ${cat === 'all' ? '<i class="fas fa-border-all"></i> Barchasi' : cat}
+        </button>
+    `).join('');
     
     document.querySelectorAll('.category-chip').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -225,47 +237,38 @@ function renderCategories() {
 
 // ============ 4. MENYUNI RENDER QILISH ============
 function renderMenu() {
-    const lang = currentLanguage || 'uz';
-    const catField = 'category_' + lang;
-    const nameField = 'name_' + lang;
-    const descField = 'desc_' + lang;
-
+    const availableMenu = getAvailableMenuItems();
     const filtered = currentCategory === 'all' 
-        ? menuData 
-        : menuData.filter(item => item[catField] === currentCategory);
+        ? availableMenu 
+        : availableMenu.filter(item => item.category === currentCategory);
     
     const grouped = filtered.reduce((acc, item) => {
-        const cat = item[catField];
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(item);
+        if (!acc[item.category]) acc[item.category] = [];
+        acc[item.category].push(item);
         return acc;
     }, {});
     
     if (Object.keys(grouped).length === 0) {
-        menuContainer.innerHTML = `<div class="empty-cart" style="padding: 60px;"><i class="fas fa-utensils"></i><p>${translations[lang].emptyCart}</p></div>`;
+        menuContainer.innerHTML = '<div class="empty-cart" style="padding: 60px;"><i class="fas fa-utensils"></i><p>Hozircha taomlar mavjud emas</p></div>';
         return;
     }
     
     let html = '';
     for (const [category, items] of Object.entries(grouped)) {
         html += `<div class="section-title">${category}</div>`;
-        html += items.map(item => {
-            const name = item[nameField] || item.name_uz;
-            const desc = item[descField] || item.desc_uz || '';
-            return `
-                <div class="item-card ${!item.available ? 'unavailable' : ''}" data-id="${item.id}">
-                    <div class="item-emoji" onclick="openImageModal('${item.image || ''}', '${name}', '${item.emoji}')">
-                        ${item.image ? `<img src="${item.image}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 12px;" onerror="this.src='https://via.placeholder.com/48?text=${encodeURIComponent(item.emoji)}'">` : item.emoji}
-                    </div>
-                    <div class="item-info">
-                        <div class="item-name">${name}${!item.available ? ' ⏸️' : ''}</div>
-                        <div class="item-desc">${desc}</div>
-                        <div class="item-price">${formatPrice(item.price)}</div>
-                    </div>
-                    <div class="item-control" id="ctrl-${item.id}"></div>
+        html += items.map(item => `
+            <div class="item-card ${!item.available ? 'unavailable' : ''}" data-id="${item.id}">
+                <div class="item-emoji" onclick='openImageModal(${JSON.stringify(item.image || "")}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.emoji)})'>
+                    ${item.image ? `<img src="${item.image}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 12px;" onerror="this.src='https://via.placeholder.com/48?text=${encodeURIComponent(getItemBadge(item))}'">` : getItemBadge(item)}
                 </div>
-            `;
-        }).join('');
+                <div class="item-info">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-desc">${item.desc || ''}</div>
+                    <div class="item-price">${formatPrice(item.price)}</div>
+                </div>
+                <div class="item-control" id="ctrl-${item.id}"></div>
+            </div>
+        `).join('');
     }
     menuContainer.innerHTML = html;
     
@@ -305,8 +308,7 @@ function addToCart(id) {
     saveCartToLocal();
     renderControl(item);
     updateCartUI();
-    const name = item['name_' + currentLanguage] || item.name_uz;
-    showToast(`${name} ${translations[currentLanguage].addedToCart}`);
+    showToast(`${item.name} savatga qo'shildi`);
 }
 
 function updateQuantity(id, delta) {
@@ -319,6 +321,13 @@ function updateQuantity(id, delta) {
     updateCartUI();
 }
 
+function clearCart() {
+    cart = {};
+    saveCartToLocal();
+    updateCartUI();
+    menuData.forEach(item => renderControl(item));
+}
+
 function saveCartToLocal() {
     localStorage.setItem('mingchinor_cart', JSON.stringify(cart));
 }
@@ -327,6 +336,12 @@ function loadCartFromLocal() {
     const stored = localStorage.getItem('mingchinor_cart');
     if (stored) {
         cart = JSON.parse(stored);
+        Object.keys(cart).forEach(id => {
+            if (!menuData.find(item => item.id == id && item.available !== false)) {
+                delete cart[id];
+            }
+        });
+        saveCartToLocal();
         updateCartUI();
         menuData.forEach(item => renderControl(item));
     }
@@ -346,17 +361,15 @@ function updateCartUI() {
         cartItemsList.innerHTML = `
             <div class="empty-cart">
                 <i class="fas fa-shopping-cart"></i>
-                <p>${translations[currentLanguage].emptyCart}</p>
+                <p>Savat hozircha bo'sh</p>
             </div>
         `;
     } else {
         cartItemsList.innerHTML = `
-            ${items.map(e => {
-                const name = e.item['name_' + currentLanguage] || e.item.name_uz;
-                return `
+            ${items.map(e => `
                 <div class="cart-item" style="display: flex; flex-direction: column; align-items: stretch; padding: 12px; gap: 8px;">
                     <div style="display: flex; justify-content: space-between;">
-                        <strong>${e.item.emoji} ${name}</strong>
+                        <strong>${getItemDisplayName(e.item) || e.item.name}</strong>
                         <span>${formatPrice(e.qty * e.item.price)}</span>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -368,14 +381,13 @@ function updateCartUI() {
                          </div>
                     </div>
                 </div>
-                `;
-            }).join('')}
+            `).join('')}
             <div class="cart-item" style="border-top: 2px solid var(--border-color); margin-top: 8px; padding-top: 12px;">
-                <div><i class="fas fa-users"></i> ${translations[currentLanguage].serviceFee} (${numberOfPeople} ${translations[currentLanguage].perPerson} × ${formatPrice(SERVICE_FEE_PER_PERSON)})</div>
+                <div><i class="fas fa-users"></i> Xizmat narxi (${numberOfPeople} kishi × ${formatPrice(SERVICE_FEE_PER_PERSON)})</div>
                 <div>${formatPrice(serviceFee)}</div>
             </div>
             <div class="cart-item" style="font-weight: bold; font-size: 1.1rem;">
-                <div>${translations[currentLanguage].total}:</div>
+                <div>Jami:</div>
                 <div style="color: var(--primary-color);">${formatPrice(total)}</div>
             </div>
         `;
@@ -399,10 +411,10 @@ async function placeOrder() {
     const MAX_DISTANCE_METERS = 500;
 
     orderBtn.disabled = true;
-    orderBtn.innerHTML = translations[currentLanguage].locationChecking;
+    orderBtn.innerHTML = 'Joylashuv tekshirilmoqda...';
 
     try {
-        if (!navigator.geolocation) throw new Error(translations[currentLanguage].gpsRequired);
+        if (!navigator.geolocation) throw new Error("Brauzeringiz GPS ni qo'llab quvvatlamaydi");
         
         const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -426,9 +438,9 @@ async function placeOrder() {
         const distance = R * c; // Metrda
 
         if (distance > MAX_DISTANCE_METERS) {
-            alert(`${translations[currentLanguage].distanceError} (${Math.round(distance)} m)`);
+            alert(`Siz kafedan juda uzoqdasiz! (Masofa: ${Math.round(distance)} metr).\nBuyurtma berish uchun kafega kamida 500 metr yaqinlashing.`);
             orderBtn.disabled = false;
-            orderBtn.innerHTML = translations[currentLanguage].order;
+            orderBtn.innerHTML = 'Buyurtma berish';
             return;
         }
     } catch (err) {
@@ -442,17 +454,17 @@ async function placeOrder() {
         }
     }
     
-    orderBtn.innerHTML = translations[currentLanguage].orderPlacing;
+    orderBtn.innerHTML = 'Buyurtma rasmiylashtirilmoqda...';
     // ------------------------------------
 
     const items = Object.values(cart).map(c => ({
         id: c.item.id,
         emoji: c.item.emoji,
-        name: c.item['name_' + currentLanguage] || c.item.name_uz,
+        name: c.item.name,
         cost: c.item.cost || 0,
         price: c.item.price,
         qty: c.qty,
-        category: c.item['category_' + currentLanguage] || c.item.category_uz
+        category: c.item.category
     }));
     
     if (items.length === 0) {
@@ -486,6 +498,7 @@ async function placeOrder() {
         
         if (result.success) {
             successModal.classList.add('open');
+            localStorage.setItem(ORDER_SESSION_KEY, 'true');
             cart = {};
             saveCartToLocal();
             updateCartUI();
@@ -500,7 +513,7 @@ async function placeOrder() {
     }
     
     orderBtn.disabled = false;
-    orderBtn.innerHTML = translations[currentLanguage].order;
+    orderBtn.innerHTML = 'Buyurtma berish';
 }
 
 // ============ 7. YORDAMCHI FUNKSIYALAR ============
@@ -521,9 +534,8 @@ function closeModal() {
 }
 
 function openImageModal(img, name, emoji) {
-    if (!img) return;
-    fullScreenImage.src = img;
-    imageCaption.textContent = `${emoji} ${name}`;
+    fullScreenImage.src = img || `https://via.placeholder.com/400?text=${encodeURIComponent(emoji || name || 'Taom')}`;
+    imageCaption.textContent = `${emoji ? `${emoji} ` : ''}${name}`;
     imageModal.classList.add('open');
 }
 
@@ -575,7 +587,7 @@ function callWaiter() {
         body: JSON.stringify(callData)
     }).catch(e => console.warn('REST waiter-call error:', e));
     
-    showToast(`📢 ${translations[currentLanguage].tableNumber} ${currentTableNumber} ${translations[currentLanguage].btnCall}!`);
+    showToast('📢 Stol ' + currentTableNumber + ' ofisant chaqirildi!');
     
     const btn = document.getElementById('callWaiterBtn');
     if (btn) {
@@ -623,6 +635,7 @@ function showWaiterCallNotification(data) {
 // ============ 9. EVENT LISTENERLAR ============
 if (cartIconBtn) cartIconBtn.addEventListener('click', () => cartOverlay.classList.add('open'));
 if (closeCartBtn) closeCartBtn.addEventListener('click', () => cartOverlay.classList.remove('open'));
+if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 if (orderBtn) orderBtn.addEventListener('click', placeOrder);
 if (closeSuccessBtn) closeSuccessBtn.addEventListener('click', closeModal);
 if (closeImageModal) closeImageModal.addEventListener('click', closeImageModalHandler);
@@ -666,3 +679,5 @@ connectWebSocket();
 setInterval(() => {
     loadMenuFromAPI();
 }, 10000);
+
+

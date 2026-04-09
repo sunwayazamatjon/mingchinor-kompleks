@@ -1,18 +1,43 @@
 // admin-panel.js (ofisant paneli)
+// API_URL endi config.js dan olinadi
 const ADMIN_PASSWORD = "mingchinor123";
 
 let currentTab = 'pending';
 let orders = [];
 let currentUser = null;
-let menuItemsForModal = [];
-let addItemsCart = {}; // { itemId: {item, qty} }
-let addItemsTargetOrderId = null;
-let addItemsTargetTableNum = null;
+let posCart = {};
+let posMenuData = [];
+let SERVICE_FEE_PER_PERSON = 5000;
 
-// ===== LOGIN =====
+function getTodayDateValue() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+function getWaiterOrdersDate() {
+    return document.getElementById('waiterOrdersDateFilter')?.value || getTodayDateValue();
+}
+
+function getPosPeopleCount() {
+    return Math.max(parseInt(document.getElementById('posPeopleCount')?.value) || 0, 0);
+}
+
+async function loadSystemConfig() {
+    try {
+        const response = await fetch(`${API_URL}/api/config`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const config = await response.json();
+        if (config?.service_fee !== undefined) {
+            SERVICE_FEE_PER_PERSON = config.service_fee;
+        }
+    } catch (err) {
+        console.error('Config load error:', err);
+    }
+}
+
 async function checkWaiterLogin() {
     const login = document.getElementById('waiterLogin').value.trim();
     const password = document.getElementById('waiterPassword').value.trim();
+    const phone = document.getElementById('waiterPhone').value.trim();
     const errorDiv = document.getElementById('loginError');
 
     try {
@@ -22,9 +47,16 @@ async function checkWaiterLogin() {
             body: JSON.stringify({ login, password })
         });
         const result = await response.json();
-
+        
         if (result.success) {
             currentUser = result.waiter;
+            // Telefon raqamini saqlash
+            if (phone) {
+                currentUser.phone = phone;
+                localStorage.setItem('waiterPhone', phone);
+            } else {
+                currentUser.phone = localStorage.getItem('waiterPhone') || '';
+            }
             localStorage.setItem('currentUser', JSON.stringify(currentUser));
             loginSuccess();
         } else {
@@ -38,18 +70,28 @@ async function checkWaiterLogin() {
 function loginSuccess() {
     document.getElementById('loginOverlay').style.display = 'none';
     document.getElementById('adminContent').style.display = 'block';
-
+    
+    // Ofitsiant ismini va telefonini chiqarish
     const headerTitle = document.querySelector('.admin-header h2');
     if (headerTitle && currentUser) {
-        headerTitle.innerHTML = `<i class="fas fa-user-tie"></i> Ofisant: ${currentUser.name}`;
+        const phoneInfo = currentUser.phone ? ` (${currentUser.phone})` : '';
+        headerTitle.innerHTML = `<i class="fas fa-user-tie"></i> Ofisant: ${currentUser.name}${phoneInfo}`;
     }
-
+    
     loadOrders();
     loadWaiterCalls();
+    loadSystemConfig();
     startAutoRefresh();
 }
 
+// Sahifa yuklanganda sessiyani tekshirish
 window.addEventListener('DOMContentLoaded', () => {
+    const dateInput = document.getElementById('waiterOrdersDateFilter');
+    if (dateInput) {
+        dateInput.value = getTodayDateValue();
+        dateInput.addEventListener('change', loadOrders);
+    }
+    document.getElementById('posPeopleCount')?.addEventListener('input', renderPosCart);
     const saved = localStorage.getItem('currentUser');
     if (saved) {
         currentUser = JSON.parse(saved);
@@ -71,7 +113,7 @@ function startAutoRefresh() {
 
 async function loadOrders() {
     try {
-        const response = await fetch(`${API_URL}/api/admin/orders`);
+        const response = await fetch(`${API_URL}/api/admin/orders?date=${encodeURIComponent(getWaiterOrdersDate())}`);
         orders = await response.json();
         renderOrders();
     } catch (err) {
@@ -80,25 +122,30 @@ async function loadOrders() {
 }
 
 async function confirmOrder(orderId) {
-    if (!currentUser) { alert('Sessiya tugagan, qayta kiring'); logout(); return; }
-
+    if (!currentUser) {
+        alert('Sessiya tugagan, iltimos qayta kiring');
+        logout();
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_URL}/api/admin/confirm-order/${orderId}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: JSON.stringify({ 
                 waiterId: currentUser.id,
                 waiterName: currentUser.name
             })
         });
         const result = await response.json();
         if (result.success) {
-            showToast('✅ Buyurtma tasdiqlandi va printerga yuborildi!');
+            showToast('✅ Buyurtma tasdiqlandi!');
             loadOrders();
         } else {
             alert('Xatolik: ' + (result.error || 'Noma\'lum'));
         }
     } catch (err) {
+        console.error('Confirm error:', err);
         alert('Tarmoq xatosi');
     }
 }
@@ -106,8 +153,9 @@ async function confirmOrder(orderId) {
 function renderOrders() {
     const container = document.getElementById('ordersContainer');
     let filteredOrders = [];
-
-    const confirmedOrders = orders.filter(o => o.status === 'confirmed' || o.status === 'printed');
+    
+    // Statistika: Jami xizmat ko'rsatilgan mijozlar (faqat tasdiqlangan/chiqarilgan buyurtmalar)
+    const confirmedOrders = orders.filter(o => ['confirmed', 'printed', 'completed'].includes(o.status));
     const totalPeople = confirmedOrders.reduce((sum, o) => sum + (o.numberOfPeople || 1), 0);
     const totalPeopleEl = document.getElementById('totalPeopleCount');
     if (totalPeopleEl) totalPeopleEl.textContent = `${totalPeople} ta`;
@@ -119,52 +167,43 @@ function renderOrders() {
     } else {
         filteredOrders = orders;
     }
-
+    
     if (filteredOrders.length === 0) {
         container.innerHTML = '<div class="empty-cart" style="padding: 60px;"><i class="fas fa-check-circle"></i><p>Hech qanday buyurtma yo\'q</p></div>';
         return;
     }
-
+    
     container.innerHTML = filteredOrders.map(order => `
-        <div class="order-card" id="order-${order.id}">
+        <div class="order-card">
             <div class="order-header">
                 <div>
-                    <span class="order-table">🏠 Stol ${order.tableNumber}</span>
+                    <span class="order-table" style="cursor:pointer;" onclick="openPosForTable(${order.tableNumber}, ${order.numberOfPeople || 1})">Stol ${order.tableNumber}</span>
                     <span class="status-badge status-${order.status}">${getStatusText(order.status)}</span>
                 </div>
                 <div class="order-time">${new Date(order.createdAt).toLocaleString('uz-UZ')}</div>
             </div>
             <div style="margin-bottom: 8px; font-size: 0.9rem; color: #8a6a50;">
                 <i class="fas fa-users"></i> ${order.numberOfPeople || 1} kishi
-                ${order.waiterName ? `&nbsp;|&nbsp; <i class="fas fa-user-tie"></i> ${order.waiterName}` : ''}
             </div>
             <div class="order-items">
                 ${order.items.map(item => `
                     <div class="order-item">
-                        <span>${item.qty}x ${item.emoji || ''} ${item.name}</span>
+                        <span>${item.qty}x ${item.emoji} ${item.name}</span>
                         <span>${formatPrice(item.price * item.qty)}</span>
                     </div>
                 `).join('')}
             </div>
             <div class="order-total">
                 Jami: ${formatPrice(order.totalAmount)}
-                ${order.serviceFee > 0 ? `<span style="font-size:0.75rem; color:#64748b; font-weight:normal;"> (xizmat: ${formatPrice(order.serviceFee)})</span>` : ''}
             </div>
-
+            ${order.serviceFee ? `<div style="color: #f59e0b; font-size: 0.9rem; font-weight: 600;">Xizmat narxi: ${formatPrice(order.serviceFee)}</div>` : ''}
             ${order.status === 'pending' ? `
                 <button class="btn-confirm" onclick="confirmOrder('${order.id}')">
                     <i class="fas fa-check"></i> Tasdiqlash & Printerga jo'natish
                 </button>
             ` : `
-                <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; align-items:center;">
-                    <div style="color: #10b981; font-size: 0.85rem; font-weight:600;">
-                        <i class="fas fa-print"></i> ${order.status === 'printed' ? 'Chek chiqarilgan' : 'Tasdiqlangan'}
-                    </div>
-                    <button class="btn-add-extra"
-                        onclick="openAddItemsModal('${order.id}', ${order.tableNumber})"
-                        style="padding:7px 16px; background:linear-gradient(135deg,#f59e0b,#d97706); color:white; border:none; border-radius:20px; font-weight:700; font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px;">
-                        <i class="fas fa-plus"></i> Qo'shimcha taom qo'shish
-                    </button>
+                <div style="color: #10b981; font-size: 0.8rem;">
+                    <i class="fas fa-print"></i> ${order.status === 'printed' ? 'Chek chiqarilgan' : 'Tasdiqlangan'}
                 </div>
             `}
         </div>
@@ -181,8 +220,19 @@ function getStatusText(status) {
     return map[status] || status;
 }
 
+function openPosForTable(tableNumber, peopleCount = 1) {
+    const posTab = document.querySelector('.tab-btn[data-tab="pos"]');
+    if (posTab) posTab.click();
+    const tableInput = document.getElementById('posTableNumber');
+    const peopleInput = document.getElementById('posPeopleCount');
+    if (tableInput) tableInput.value = tableNumber;
+    if (peopleInput && !peopleInput.value) peopleInput.value = peopleCount;
+    renderPosCart();
+    document.getElementById('posContainer')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function formatPrice(price) {
-    return Number(price || 0).toLocaleString('uz-UZ') + " so'm";
+    return price.toLocaleString('uz-UZ') + " so'm";
 }
 
 function showToast(message) {
@@ -190,161 +240,14 @@ function showToast(message) {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toast';
-        toast.style.cssText = 'position:fixed;bottom:80px;right:20px;background:#2a1a0e;color:white;padding:12px 24px;border-radius:40px;z-index:2000;font-size:14px;';
+        toast.style.cssText = 'position:fixed;bottom:80px;right:20px;background:#2a1a0e;color:white;padding:12px 24px;border-radius:40px;z-index:2000';
         document.body.appendChild(toast);
     }
     toast.textContent = message;
     toast.style.display = 'block';
     setTimeout(() => toast.style.display = 'none', 3000);
 }
-
-// ===== QO'SHIMCHA TAOM QO'SHISH MODALI =====
-async function openAddItemsModal(orderId, tableNum) {
-    addItemsTargetOrderId = orderId;
-    addItemsTargetTableNum = tableNum;
-    addItemsCart = {};
-
-    // Menyuni yuklash
-    if (!menuItemsForModal.length) {
-        try {
-            const res = await fetch(`${API_URL}/api/menu`);
-            menuItemsForModal = await res.json();
-        } catch (err) {
-            showToast('❌ Menyu yuklanmadi');
-            return;
-        }
-    }
-
-    const modal = document.getElementById('addItemsModal');
-    const title = document.getElementById('addItemsModalTitle');
-    if (title) title.textContent = `Stol ${tableNum} - Qo'shimcha buyurtma`;
-
-    renderAddItemsModal();
-    if (modal) modal.style.display = 'flex';
-}
-
-function closeAddItemsModal() {
-    const modal = document.getElementById('addItemsModal');
-    if (modal) modal.style.display = 'none';
-    addItemsCart = {};
-    addItemsTargetOrderId = null;
-    addItemsTargetTableNum = null;
-    renderAddItemsCartSummary();
-}
-
-function renderAddItemsModal() {
-    const list = document.getElementById('addItemsMenuList');
-    const searchVal = document.getElementById('addItemsSearch')?.value.toLowerCase() || '';
-    const catFilter = document.getElementById('addItemsCatFilter')?.value || 'all';
-    if (!list) return;
-
-    let items = menuItemsForModal.filter(i => i.available);
-    if (searchVal) items = items.filter(i => i.name.toLowerCase().includes(searchVal));
-    if (catFilter !== 'all') items = items.filter(i => i.category === catFilter);
-
-    list.innerHTML = items.map(item => {
-        const qty = addItemsCart[item.id]?.qty || 0;
-        return `
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid #f1f5f9;">
-                <div style="display:flex; align-items:center; gap:12px; flex:1;">
-                    ${item.image
-                        ? `<img src="${item.image}" style="width:44px;height:44px;border-radius:10px;object-fit:cover;" onerror="this.style.display='none'">`
-                        : `<span style="font-size:28px;">${item.emoji}</span>`}
-                    <div>
-                        <div style="font-weight:700; font-size:14px; color:#1e293b;">${item.emoji} ${item.name}</div>
-                        <div style="font-size:12px; color:#64748b;">${formatPrice(item.price)}</div>
-                    </div>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <button onclick="changeAddQty(${item.id}, -1)" style="width:30px;height:30px;border-radius:50%;border:1.5px solid #e2e8f0;background:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#c0522a;font-weight:700;">−</button>
-                    <span style="font-weight:700; font-size:16px; min-width:20px; text-align:center; color:#1e293b;">${qty}</span>
-                    <button onclick="changeAddQty(${item.id}, 1, ${JSON.stringify(item).replace(/"/g,'&quot;')})" style="width:30px;height:30px;border-radius:50%;border:none;background:linear-gradient(135deg,#c0522a,#a0411e);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;">+</button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    renderAddItemsCartSummary();
-}
-
-function changeAddQty(itemId, delta, itemObj) {
-    if (!addItemsCart[itemId] && delta > 0) {
-        const found = menuItemsForModal.find(i => i.id === itemId);
-        if (found) addItemsCart[itemId] = { item: found, qty: 0 };
-    }
-    if (!addItemsCart[itemId]) return;
-    addItemsCart[itemId].qty = Math.max(0, addItemsCart[itemId].qty + delta);
-    if (addItemsCart[itemId].qty === 0) delete addItemsCart[itemId];
-    renderAddItemsModal();
-}
-
-function renderAddItemsCartSummary() {
-    const summary = document.getElementById('addItemsCartSummary');
-    const btnSend = document.getElementById('btnSendExtraOrder');
-    if (!summary) return;
-
-    const cartItems = Object.values(addItemsCart).filter(c => c.qty > 0);
-    if (!cartItems.length) {
-        summary.innerHTML = '<div style="color:#94a3b8; text-align:center; padding:16px;">Hali hech narsa tanlanmagan</div>';
-        if (btnSend) btnSend.disabled = true;
-        return;
-    }
-
-    const total = cartItems.reduce((s, c) => s + c.item.price * c.qty, 0);
-    summary.innerHTML = `
-        ${cartItems.map(c => `
-            <div style="display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px dashed #f1f5f9;">
-                <span>${c.qty}x ${c.item.emoji} ${c.item.name}</span>
-                <span style="font-weight:600;">${formatPrice(c.item.price * c.qty)}</span>
-            </div>
-        `).join('')}
-        <div style="font-weight:800; font-size:15px; text-align:right; padding-top:10px; color:#c0522a;">
-            Jami: ${formatPrice(total)}
-        </div>
-    `;
-    if (btnSend) btnSend.disabled = false;
-}
-
-async function sendExtraOrder() {
-    const cartItems = Object.values(addItemsCart).filter(c => c.qty > 0);
-    if (!cartItems.length) { showToast('❌ Kamida 1 ta taom tanlang!'); return; }
-
-    const newItems = cartItems.map(c => ({
-        id: c.item.id,
-        name: c.item.name,
-        emoji: c.item.emoji || '🍽️',
-        price: c.item.price,
-        cost: c.item.cost || 0,
-        qty: c.qty
-    }));
-    const addedTotal = newItems.reduce((s, i) => s + i.price * i.qty, 0);
-
-    try {
-        const res = await fetch(`${API_URL}/api/admin/orders/${addItemsTargetOrderId}/add-items`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                password: ADMIN_PASSWORD,
-                items: newItems,
-                addedTotal,
-                waiterId: currentUser?.id,
-                waiterName: currentUser?.name
-            })
-        });
-        const result = await res.json();
-        if (result.success) {
-            showToast(`✅ ${newItems.length} taom qo'shildi va printerga yuborildi!`);
-            closeAddItemsModal();
-            loadOrders();
-        } else {
-            showToast('❌ Xatolik: ' + (result.error || 'Noma\'lum'));
-        }
-    } catch (err) {
-        showToast('❌ Tarmoq xatosi');
-    }
-}
-
-// ===== OFISANT CHAQIRISHLAR =====
+// ============ OFISANT CHAQIRISHLAR ============
 let waiterCalls = [];
 
 async function loadWaiterCalls() {
@@ -380,7 +283,9 @@ function renderWaiterCalls() {
                     🔔 Stol ${call.tableNumber}
                     <span style="font-size:0.9rem; color:#64748b; margin-left:8px;">(${call.numberOfPeople || 1} kishi)</span>
                 </div>
-                <div class="waiter-call-meta">⏰ ${new Date(call.calledAt).toLocaleTimeString('uz-UZ')}</div>
+                <div class="waiter-call-meta">
+                    ⏰ ${new Date(call.calledAt).toLocaleTimeString('uz-UZ')}
+                </div>
             </div>
             <button class="btn-dismiss" onclick="dismissWaiterCall(${call.tableNumber})">
                 <i class="fas fa-check"></i> Bordim
@@ -391,10 +296,13 @@ function renderWaiterCalls() {
 
 async function dismissWaiterCall(tableNumber) {
     try {
-        await fetch(`${API_URL}/api/admin/waiter-calls/dismiss/${tableNumber}`, {
+        await fetch(`${API_URL}/api/admin/waiter-calls/dismiss/${tableNumber}`, { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ waiterId: currentUser?.id, waiterName: currentUser?.name })
+            body: JSON.stringify({
+                waiterId: currentUser?.id,
+                waiterName: currentUser?.name
+            })
         });
         waiterCalls = waiterCalls.filter(c => c.tableNumber !== tableNumber);
         renderWaiterCalls();
@@ -413,41 +321,58 @@ async function clearAllWaiterCalls() {
     }
 }
 
-// ===== WEBSOCKET =====
+// WebSocket ulanish (ofisant paneli uchun)
 let socket = null;
 
 function connectWaiterSocket() {
     socket = io(API_URL);
-
-    socket.on('connect', () => console.log('Ofisant paneli WebSocket ulandi'));
-
+    
+    socket.on('connect', () => {
+        console.log('Ofisant paneli WebSocket ulandi');
+    });
+    
     socket.on('waiter-call', (data) => {
+        // Yangi chaqirishni lokal ro'yxatga qo'shish
         const existing = waiterCalls.findIndex(c => c.tableNumber === data.tableNumber);
-        if (existing !== -1) waiterCalls[existing] = data;
-        else waiterCalls.unshift(data);
+        if (existing !== -1) {
+            waiterCalls[existing] = data;
+        } else {
+            waiterCalls.unshift(data);
+        }
         renderWaiterCalls();
+        
+        // Audio signal
         playAlertSound();
+        
+        // Toast va modal
         showWaiterCall(data);
         highlightTableInOrders(data.tableNumber);
     });
 
     socket.on('new-order', (order) => {
-        loadOrders();
+        console.log('Yangi buyurtma keldi:', order);
+        loadOrders(); // Ro'yxatni yangilash
+        
+        // Audio signal
         playOrderAlertSound();
+        
+        // Toast
         showToast(`🆕 Yangi buyurtma! Stol: ${order.tableNumber}`);
     });
 }
 
 function playOrderAlertSound() {
     const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-04.mp3');
-    audio.play().catch(() => {});
+    audio.play().catch(e => console.log('Order audio error:', e));
 }
 
 function playAlertSound() {
     const audio = document.getElementById('notificationSound');
     if (audio) {
         audio.currentTime = 0;
-        audio.play().catch(() => {
+        audio.play().catch(e => {
+            console.log('Autoplay blocked. Sound will play after first user interaction.');
+            // Fallback: Web Audio beep
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
             osc.connect(ctx.destination);
@@ -458,25 +383,43 @@ function playAlertSound() {
 }
 
 function showWaiterCall(data) {
+    // Audio
     const audio = new Audio('https://www.soundjay.com/misc/sounds/bell-ringing-05.mp3');
-    audio.play().catch(() => {});
+    audio.play().catch(e => console.log('Audio error:', e));
+    
+    // Toast
     showToast(`🔔 Stol ${data.tableNumber} mijoz ofisant chaqirdi!`);
+    
+    // Modal notification
     const modal = document.createElement('div');
+    modal.className = 'waiter-call-modal';
     modal.innerHTML = `
-        <div style="background:#c0522a;color:white;padding:24px;border-radius:24px;text-align:center;max-width:300px;width:100%;">
-            <i class="fas fa-bell" style="font-size:48px;margin-bottom:16px;display:block;"></i>
-            <h2 style="margin-bottom:8px;">Stol ${data.tableNumber}</h2>
-            <p>Ofisant chaqirildi! (${data.numberOfPeople || 1} kishi)</p>
-            <button onclick="this.parentElement.parentElement.remove()" style="margin-top:16px;padding:8px 24px;background:white;border:none;border-radius:40px;color:#c0522a;font-weight:bold;">Yopish</button>
+        <div style="background: #c0522a; color: white; padding: 24px; border-radius: 24px; text-align: center;">
+            <i class="fas fa-bell" style="font-size: 48px; margin-bottom: 16px;"></i>
+            <h2>Stol ${data.tableNumber}</h2>
+            <p>Ofisant chaqirildi!</p>
+            <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 16px; padding: 8px 24px; background: white; border: none; border-radius: 40px; color: #c0522a; font-weight: bold;">Yopish</button>
         </div>
     `;
-    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:4000;padding:20px;';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 4000;
+    `;
     document.body.appendChild(modal);
     setTimeout(() => modal.remove(), 8000);
 }
 
 function highlightTableInOrders(tableNumber) {
-    document.querySelectorAll('.order-card').forEach(card => {
+    const orderCards = document.querySelectorAll('.order-card');
+    orderCards.forEach(card => {
         if (card.textContent.includes(`Stol ${tableNumber}`)) {
             card.style.animation = 'highlight 0.5s ease 3';
             setTimeout(() => { card.style.animation = ''; }, 1500);
@@ -484,23 +427,175 @@ function highlightTableInOrders(tableNumber) {
     });
 }
 
-const styleEl = document.createElement('style');
-styleEl.textContent = `
+// CSS animatsiya qo'shamiz
+const style = document.createElement('style');
+style.textContent = `
     @keyframes highlight {
         0% { background: white; border-left-color: #c0522a; }
         50% { background: #fef3c7; border-left-color: #f59e0b; }
         100% { background: white; border-left-color: #c0522a; }
     }
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
 `;
-document.head.appendChild(styleEl);
+document.head.appendChild(style);
 
+// Ulanish
 connectWaiterSocket();
-
+// Tab switcher
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         currentTab = btn.dataset.tab;
-        renderOrders();
+        if (currentTab === 'pos') {
+            document.getElementById('ordersContainer').style.display = 'none';
+            document.getElementById('posContainer').style.display = 'block';
+            loadPosMenu();
+        } else {
+            document.getElementById('ordersContainer').style.display = 'block';
+            document.getElementById('posContainer').style.display = 'none';
+            renderOrders();
+        }
     });
 });
+
+document.getElementById('refreshBtn')?.addEventListener('click', loadOrders);
+
+// POS functions
+async function loadPosMenu() {
+    try {
+        const response = await fetch(`${API_URL}/api/menu`, { cache: 'no-store' });
+        posMenuData = await response.json();
+        renderPosMenu();
+    } catch (err) {
+        console.error('POS menu load error:', err);
+    }
+}
+
+function renderPosMenu() {
+    const menuDiv = document.getElementById('posMenu');
+    const availableItems = posMenuData.filter(item => item.available !== false);
+    if (availableItems.length === 0) {
+        menuDiv.innerHTML = '<div style="padding: 24px; text-align:center; color:#64748b;">Hozircha mavjud taomlar yo‘q</div>';
+    } else {
+        menuDiv.innerHTML = availableItems.map(item => `
+            <div class="pos-item">
+                <img src="${item.image || 'https://via.placeholder.com/80?text=' + encodeURIComponent(item.emoji)}" alt="${item.name}">
+                <div class="pos-item-name">${item.name}</div>
+                <div class="pos-item-price">${formatPrice(item.price)}</div>
+                <div class="pos-item-controls">
+                    <button class="minus" onclick="updatePosCart('${item.id}', -1)">-</button>
+                    <span>${posCart[item.id] || 0}</span>
+                    <button class="plus" onclick="updatePosCart('${item.id}', 1)">+</button>
+                </div>
+            </div>
+        `).join('');
+    }
+    renderPosCart();
+}
+
+function updatePosCart(itemId, delta) {
+    if (!posCart[itemId]) posCart[itemId] = 0;
+    posCart[itemId] += delta;
+    if (posCart[itemId] <= 0) {
+        delete posCart[itemId];
+    }
+    renderPosMenu();
+}
+
+function clearPosCart() {
+    posCart = {};
+    renderPosMenu();
+}
+
+function renderPosCart() {
+    const cartDiv = document.getElementById('posCartItems');
+    const totalSpan = document.getElementById('posTotal');
+    let subtotal = 0;
+    let html = '';
+    for (const [id, qty] of Object.entries(posCart)) {
+        const item = posMenuData.find(i => i.id == id);
+        if (!item || item.available === false || qty <= 0) {
+            delete posCart[id];
+            continue;
+        }
+        const itemTotal = item.price * qty;
+        subtotal += itemTotal;
+        html += `<div class="pos-cart-item">
+            <span>${item.name} x${qty}</span>
+            <span>${formatPrice(itemTotal)}</span>
+        </div>`;
+    }
+    const serviceFee = getPosPeopleCount() * SERVICE_FEE_PER_PERSON;
+    const total = subtotal + serviceFee;
+    if (serviceFee > 0) {
+        html += `<div class="pos-cart-item"><span>Xizmat haqi</span><span>${formatPrice(serviceFee)}</span></div>`;
+    }
+    cartDiv.innerHTML = html;
+    totalSpan.textContent = formatPrice(total);
+}
+
+async function placePosOrder() {
+    const tableNum = document.getElementById('posTableNumber').value;
+    const peopleCount = document.getElementById('posPeopleCount').value;
+    
+    if (!tableNum || !peopleCount) {
+        alert('Stol raqami va kishilar sonini kiriting!');
+        return;
+    }
+    
+    const items = [];
+    Object.keys(posCart).forEach(id => {
+        const qty = posCart[id];
+        const item = posMenuData.find(i => i.id == id);
+        if (!item || item.available === false || qty <= 0) {
+            delete posCart[id];
+            return;
+        }
+        items.push({ 
+            id: item.id, 
+            qty: qty, 
+            name: item.name, 
+            emoji: item.emoji, 
+            price: item.price, 
+            cost: item.cost || 0 
+        });
+    });
+    
+    if (items.length === 0) {
+        alert('Kamida bitta taom tanlang!');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_URL}/api/order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                tableNumber: parseInt(tableNum),
+                numberOfPeople: parseInt(peopleCount),
+                items: items
+            })
+        });
+        
+        const result = await response.json();
+        if (result.success) {
+            showToast('✅ Zakaz muvaffaqiyatli berildi!');
+            posCart = {};
+            document.getElementById('posTableNumber').value = '';
+            document.getElementById('posPeopleCount').value = '';
+            renderPosMenu();
+            // Buyurtmalar ro'yxatini yangilash
+            loadOrders();
+        } else {
+            alert('Zakaz berishda xatolik: ' + (result.error || 'Noma\'lum'));
+        }
+    } catch (err) {
+        console.error('Order error:', err);
+        alert('Tarmoq xatosi!');
+    }
+}
+

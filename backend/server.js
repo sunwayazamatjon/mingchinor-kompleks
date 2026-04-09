@@ -4,16 +4,16 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const { v4: uuidv4 } = require('uuid');
 const http = require('http');
 const socketIo = require('socket.io');
 
 // Import modules
 const printerService = require('./printer');
-const { printCashierReceipt } = printerService;
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3002;
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
@@ -24,32 +24,43 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // ==================== MONGODB ULANISH ====================
 const MONGODB_URI = process.env.MONGODB_URI;
+let mongoServer;
 
-mongoose.connect(MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => console.log('✅ MongoDB-ga muvaffaqiyatli ulanildi'))
-.catch(err => console.error('❌ MongoDB ulanish xatosi:', err));
+async function connectDatabase() {
+    try {
+        if (MONGODB_URI) {
+            console.log('🔌 MongoDB URI topildi, ulanishga urinilmoqda...');
+            await mongoose.connect(MONGODB_URI, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            });
+            console.log('✅ MongoDB-ga muvaffaqiyatli ulanildi');
+        } else {
+            throw new Error('MONGODB_URI mavjud emas');
+        }
+    } catch (err) {
+        console.warn('❌ MongoDB ulanish xatosi:', err.message);
+        console.log('🔄 In-memory MongoDB serverga o‘tayapman...');
+        mongoServer = await MongoMemoryServer.create();
+        await mongoose.connect(mongoServer.getUri(), {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+        console.log('✅ In-memory MongoDB server ishga tushdi');
+    }
+}
+
+connectDatabase();
 
 // ==================== MODELLAR ====================
 const MenuSchema = new mongoose.Schema({
     id: Number,
     emoji: String,
     name: String,
-    name_uz: String,
-    name_ru: String,
-    name_en: String,
     desc: String,
-    desc_uz: String,
-    desc_ru: String,
-    desc_en: String,
     cost: Number,
     price: Number,
     category: String,
-    category_uz: String,
-    category_ru: String,
-    category_en: String,
     available: { type: Boolean, default: true },
     image: String
 });
@@ -105,6 +116,65 @@ const TableSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 const Table = mongoose.model('Table', TableSchema);
+
+function buildDateFilter(dateValue, fieldName = 'createdAt') {
+    if (!dateValue) return {};
+    const start = new Date(`${dateValue}T00:00:00`);
+    const end = new Date(`${dateValue}T23:59:59.999`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return null;
+    }
+    return { [fieldName]: { $gte: start, $lte: end } };
+}
+
+async function buildValidatedOrderPayload(rawItems, numberOfPeople) {
+    if (!Array.isArray(rawItems) || rawItems.length === 0) {
+        throw new Error('Buyurtma ichida taomlar yo\'q');
+    }
+
+    const menuIds = [...new Set(rawItems.map(item => parseInt(item.id)).filter(Number.isFinite))];
+    const menuItems = await Menu.find({ id: { $in: menuIds } });
+    const menuById = new Map(menuItems.map(item => [item.id, item]));
+
+    const items = rawItems.map(rawItem => {
+        const id = parseInt(rawItem.id);
+        const qty = parseInt(rawItem.qty);
+        const menuItem = menuById.get(id);
+
+        if (!menuItem) {
+            throw new Error(`Taom topilmadi: ${rawItem.id}`);
+        }
+        if (menuItem.available === false) {
+            throw new Error(`Taom vaqtincha mavjud emas: ${menuItem.name}`);
+        }
+        if (!Number.isFinite(qty) || qty <= 0) {
+            throw new Error(`Taom soni noto'g'ri: ${menuItem.name}`);
+        }
+
+        return {
+            id: menuItem.id,
+            name: menuItem.name,
+            emoji: menuItem.emoji || '',
+            price: menuItem.price,
+            cost: menuItem.cost || 0,
+            category: menuItem.category,
+            qty
+        };
+    });
+
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const people = Math.max(parseInt(numberOfPeople) || 1, 1);
+    const config = await Config.findOne();
+    const serviceFeePerPerson = config?.service_fee ?? 5000;
+    const serviceFee = people * serviceFeePerPerson;
+
+    return {
+        items,
+        subtotal,
+        serviceFee,
+        totalAmount: subtotal + serviceFee
+    };
+}
 
 // ==================== INITIAL DATA ====================
 async function checkInitialData() {
@@ -206,21 +276,23 @@ app.post('/api/admin/menu', async (req, res) => {
 
 // 3. Buyurtma berish
 app.post('/api/order', async (req, res) => {
-    const { tableNumber, numberOfPeople, items, totalAmount, serviceFee } = req.body;
+    const { tableNumber, numberOfPeople, items } = req.body;
     
     if (!tableNumber || !items || items.length === 0) {
         return res.status(400).json({ error: 'Stol raqami va buyurtma majburiy' });
     }
     
     try {
+        const people = Math.max(parseInt(numberOfPeople) || 1, 1);
+        const validatedOrder = await buildValidatedOrderPayload(items, people);
         const orderId = uuidv4();
         const order = new Order({
             id: orderId,
             tableNumber: parseInt(tableNumber),
-            numberOfPeople: parseInt(numberOfPeople) || 1,
-            items: items,
-            totalAmount: totalAmount,
-            serviceFee: serviceFee || 0,
+            numberOfPeople: people,
+            items: validatedOrder.items,
+            totalAmount: validatedOrder.totalAmount,
+            serviceFee: validatedOrder.serviceFee,
             status: 'pending'
         });
         
@@ -254,6 +326,28 @@ app.get('/api/admin/pending-orders', async (req, res) => {
     try {
         const pending = await Order.find({ status: 'pending' }).sort({ createdAt: -1 });
         res.json(pending);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4.5. Kassa uchun faol buyurtmalar (tasdiqlangan va chop etilgan)
+app.get('/api/orders/active', async (req, res) => {
+    const { password, date } = req.query;
+    if (password !== 'mingchinor123') {
+        return res.status(401).json({ error: 'Parol noto\'g\'ri' });
+    }
+    
+    try {
+        const dateFilter = buildDateFilter(date);
+        if (date && !dateFilter) {
+            return res.status(400).json({ error: 'Sana formati noto\'g\'ri' });
+        }
+        const active = await Order.find({
+            status: { $in: ['confirmed', 'printed'] },
+            ...(dateFilter || {})
+        }).sort({ createdAt: -1 });
+        res.json(active);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -301,10 +395,80 @@ app.post('/api/admin/confirm-order/:orderId', async (req, res) => {
 // 6. Barcha buyurtmalar tarixi (admin uchun)
 app.get('/api/admin/orders', async (req, res) => {
     try {
-        const orders = await Order.find().sort({ createdAt: -1 }).limit(100);
+        const dateFilter = buildDateFilter(req.query.date);
+        if (req.query.date && !dateFilter) {
+            return res.status(400).json({ error: 'Sana formati noto\'g\'ri' });
+        }
+        const orders = await Order.find(dateFilter || {}).sort({ createdAt: -1 }).limit(100);
         res.json(orders);
     } catch (err) {
         res.status(500).json({ error: err.message });
+    }
+});
+
+// 7.5. Mijoz cheki chiqarish
+app.post('/api/admin/print-customer/:orderId', async (req, res) => {
+    const { orderId } = req.params;
+    const { password } = req.query;
+    if (password !== 'mingchinor123') {
+        return res.status(401).json({ error: 'Parol noto\'g\'ri' });
+    }
+    
+    try {
+        const order = await Order.findOne({ id: orderId });
+        if (!order) {
+            return res.status(404).json({ error: 'Buyurtma topilmadi' });
+        }
+        
+        await printerService.printCustomerReceipt(order);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Customer print error:', err);
+        res.status(500).json({ error: 'Printerga ulanishda xatolik' });
+    }
+});
+
+// 7.6. Buyurtmani to'langan deb belgilash
+app.post('/api/admin/mark-paid/:orderId', async (req, res) => {
+    const { orderId } = req.params;
+    const { password } = req.query;
+    if (password !== 'mingchinor123') {
+        return res.status(401).json({ error: 'Parol noto\'g\'ri' });
+    }
+    
+    try {
+        const order = await Order.findOne({ id: orderId });
+        if (!order) {
+            return res.status(404).json({ error: 'Buyurtma topilmadi' });
+        }
+        
+        order.status = 'completed';
+        order.completedAt = new Date();
+        await order.save();
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Mark paid error:', err);
+        res.status(500).json({ error: 'Xatolik yuz berdi' });
+    }
+});
+
+app.post('/api/admin/mark-table-paid/:tableNumber', async (req, res) => {
+    const tableNumber = parseInt(req.params.tableNumber);
+    const { password } = req.query;
+    if (password !== 'mingchinor123') {
+        return res.status(401).json({ error: 'Parol noto\'g\'ri' });
+    }
+
+    try {
+        await Order.updateMany(
+            { tableNumber, status: { $in: ['confirmed', 'printed'] } },
+            { status: 'completed', completedAt: new Date() }
+        );
+        await Table.findOneAndUpdate({ number: tableNumber }, { status: 'free' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Mark table paid error:', err);
+        res.status(500).json({ error: 'Xatolik yuz berdi' });
     }
 });
 
@@ -333,21 +497,22 @@ app.post('/api/admin/retry-print/:orderId', async (req, res) => {
     }
 });
 
-// 8. Sotilgan taomlar bo'yicha hisobot (sana oralig'i bilan)
+// 8. Sotilgan taomlar bo'yicha hisobot
 app.get('/api/admin/stats/sales', async (req, res) => {
-    const { password, from, to } = req.query;
+    const { password, date } = req.query;
     if (password !== 'mingchinor123') {
         return res.status(401).json({ error: 'Parol noto\'g\'ri' });
     }
     
     try {
-        let query = { status: { $in: ['confirmed', 'printed'] } };
-        if (from || to) {
-            query.createdAt = {};
-            if (from) query.createdAt.$gte = new Date(from);
-            if (to) { const toDate = new Date(to); toDate.setHours(23,59,59,999); query.createdAt.$lte = toDate; }
+        const dateFilter = buildDateFilter(date);
+        if (date && !dateFilter) {
+            return res.status(400).json({ error: 'Sana formati noto\'g\'ri' });
         }
-        const completedOrders = await Order.find(query);
+        const completedOrders = await Order.find({
+            status: { $in: ['confirmed', 'printed', 'completed'] },
+            ...(dateFilter || {})
+        }).sort({ createdAt: -1 });
         
         const itemStats = {};
         const waiterStats = {};
@@ -594,69 +759,10 @@ app.post('/api/admin/print-final-bill/:tableNumber', async (req, res) => {
             combinedOrder.serviceFee += (o.serviceFee || 0);
         });
 
-        // Kassir printeriga jo'natish (mijoz cheki)
-        try {
-            await printCashierReceipt(combinedOrder);
-        } catch (printErr) {
-            console.warn('Kassir printer xatosi:', printErr.message);
-            // Printer xatosi bo'lsa ham muvaffaqiyat qaytaramiz (chek ko'rinishda ko'rsatish uchun)
-        }
+        // Printerga jo'natish
+        await printerService.printOrder(combinedOrder);
         
         res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Ofisant chaqirishlarni barchasini tozalash
-app.post('/api/admin/waiter-calls/clear', async (req, res) => {
-    try {
-        await WaiterCall.updateMany({ status: 'pending' }, { status: 'dismissed' });
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
-// Mavjud buyurtmaga qo'shimcha taomlar qo'shish (ofisant tomonidan)
-app.post('/api/admin/orders/:orderId/add-items', async (req, res) => {
-    const { orderId } = req.params;
-    const { password, items, addedTotal, waiterId, waiterName } = req.body;
-    if (password !== 'mingchinor123') {
-        return res.status(401).json({ error: 'Parol noto\'g\'ri' });
-    }
-    try {
-        const order = await Order.findOne({ id: orderId });
-        if (!order) return res.status(404).json({ error: 'Buyurtma topilmadi' });
-
-        // Yangi taomlarni mavjud ro'yxatga qo'shish (qty birlashtirish)
-        items.forEach(newItem => {
-            const existing = order.items.find(i => i.id === newItem.id);
-            if (existing) {
-                existing.qty += newItem.qty;
-            } else {
-                order.items.push(newItem);
-            }
-        });
-        order.totalAmount += addedTotal;
-        order.markModified('items');
-        await order.save();
-
-        // Yangi taomlarni printerga yuborish
-        try {
-            const partialOrder = {
-                tableNumber: order.tableNumber,
-                items: items,
-                totalAmount: addedTotal,
-                numberOfPeople: order.numberOfPeople || 1
-            };
-            const { printOrder } = require('./printer');
-            await printOrder(partialOrder);
-        } catch (printErr) {
-            console.warn('Add-items printer xatosi:', printErr.message);
-        }
-
-        res.json({ success: true, order });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

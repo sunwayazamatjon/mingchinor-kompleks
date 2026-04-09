@@ -65,7 +65,10 @@
             cursor: pointer;
             font-weight: bold;
         }
-        .btn-confirm:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-confirm:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         .status-badge {
             padding: 4px 12px;
             border-radius: 20px;
@@ -79,7 +82,6 @@
             display: flex;
             gap: 12px;
             margin-bottom: 24px;
-            flex-wrap: wrap;
         }
         .tab-btn {
             padding: 10px 24px;
@@ -106,7 +108,6 @@
             cursor: pointer;
             font-size: 24px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 100;
         }
         .waiter-calls-panel {
             background: linear-gradient(135deg, #fff7ed, #fef3c7);
@@ -161,9 +162,20 @@
             border-left: 4px solid #f59e0b;
             box-shadow: 0 2px 6px rgba(0,0,0,0.07);
         }
-        .waiter-call-info { display: flex; flex-direction: column; gap: 4px; }
-        .waiter-call-table { font-size: 1.1rem; font-weight: bold; color: #1e293b; }
-        .waiter-call-meta { font-size: 0.8rem; color: #64748b; }
+        .waiter-call-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .waiter-call-table {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #1e293b;
+        }
+        .waiter-call-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
         .btn-dismiss {
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
@@ -186,138 +198,150 @@
             font-size: 0.8rem;
             margin-left: auto;
         }
-
-        /* ===== QOSHIMCHA TAOM MODALI ===== */
-        .add-items-modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.55);
-            display: none;
+        .pos-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .pos-header {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .pos-table-select {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .pos-table-select label {
+            font-weight: bold;
+            color: #2d3436;
+        }
+        .pos-table-select input {
+            padding: 8px 12px;
+            border: 2px solid #dfe6e9;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 120px;
+        }
+        .pos-menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .pos-item {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .pos-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 12px;
+        }
+        .pos-item-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        .pos-item-price {
+            color: #c0522a;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .pos-item-controls {
+            display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 3000;
-            padding: 16px;
-        }
-        .add-items-modal {
-            background: white;
-            border-radius: 24px;
-            max-width: 680px;
-            width: 100%;
-            max-height: 92vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-        }
-        .add-items-modal-header {
-            padding: 20px 24px 16px;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: linear-gradient(135deg, #fff7ed, #fef3c7);
-            flex-shrink: 0;
-        }
-        .add-items-modal-header h3 {
-            font-size: 17px;
-            font-weight: 800;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .add-items-modal-body {
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-height: 0;
-        }
-        .add-items-search-bar {
-            padding: 14px 20px;
-            border-bottom: 1px solid #f1f5f9;
-            display: flex;
             gap: 10px;
-            flex-wrap: wrap;
-            flex-shrink: 0;
         }
-        .add-items-search-bar input, .add-items-search-bar select {
-            padding: 9px 14px;
-            border: 1.5px solid #e2e8f0;
-            border-radius: 24px;
-            font-size: 13px;
-            background: #f8fafc;
+        .pos-item-controls button {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
         }
-        .add-items-search-bar input { flex: 1; min-width: 160px; }
-        .add-items-menu-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 20px;
+        .pos-item-controls .minus {
+            background: #ef4444;
+            color: white;
         }
-        .add-items-cart-summary {
-            padding: 16px 20px;
-            border-top: 1.5px solid #e2e8f0;
-            background: #f8fafc;
-            flex-shrink: 0;
+        .pos-item-controls .plus {
+            background: #10b981;
+            color: white;
         }
-        .add-items-cart-summary h4 {
-            font-size: 13px;
-            font-weight: 700;
-            color: #64748b;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        .pos-cart {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: sticky;
+            bottom: 20px;
         }
-        .btn-send-extra {
+        .pos-cart h4 {
+            margin-bottom: 16px;
+            color: #2d3436;
+        }
+        .pos-cart-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .pos-total {
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin: 16px 0;
+            text-align: right;
+            color: #c0522a;
+        }
+        .btn-order-pos {
             width: 100%;
-            margin-top: 12px;
-            padding: 13px;
-            background: linear-gradient(135deg, #c0522a, #a0411e);
+            padding: 12px;
+            background: #c0522a;
             color: white;
             border: none;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 15px;
+            border-radius: 8px;
+            font-size: 16px;
             cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            font-weight: bold;
         }
-        .btn-send-extra:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(192,82,42,0.3); }
-        .btn-send-extra:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-close-modal {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(0,0,0,0.07);
-            cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #475569;
+        .btn-order-pos:hover {
+            background: #a04422;
         }
     </style>
 </head>
 <body>
-    <!-- Login overlay -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-card">
             <div class="login-icon"><i class="fas fa-user-tie"></i></div>
             <h2>Ofisant Panel</h2>
             <p>Xizmatni boshlash uchun kiring</p>
             <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
-                <input type="text" id="waiterLogin" placeholder="Login" class="login-input" style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') checkWaiterLogin()">
-                <input type="password" id="waiterPassword" placeholder="Parol" class="login-input" style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') checkWaiterLogin()">
+                <input type="text" id="waiterLogin" placeholder="Login" class="login-input" style="margin-bottom: 0;">
+                <input type="password" id="waiterPassword" placeholder="Parol" class="login-input" style="margin-bottom: 0;">
+                <input type="tel" id="waiterPhone" placeholder="Telefon raqami (ixtiyoriy)" class="login-input" style="margin-bottom: 0;">
             </div>
             <button onclick="checkWaiterLogin()" class="btn-login">Kirish</button>
             <div id="loginError" class="error-message"></div>
         </div>
     </div>
 
-    <!-- Ovozli bildirishnoma -->
+    <!-- Ovozli bildirishnoma uchun -->
     <audio id="notificationSound" preload="auto">
         <source src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" type="audio/mpeg">
     </audio>
@@ -335,19 +359,18 @@
                     <i class="fas fa-bell" style="color:#f59e0b;"></i>
                     Ofisant chaqirishlari
                     <span class="waiter-call-badge" id="waiterCallBadge">0</span>
-                    <button class="btn-clear-all" onclick="clearAllWaiterCalls()">Barchasini tozalash</button>
+                    <button class="btn-clear-all" onclick="clearAllWaiterCalls()" style="margin-left:auto;">Barchasini tozalash</button>
                 </div>
                 <div id="waiterCallsList"></div>
             </div>
 
-            <!-- Tablar -->
             <div class="tabs">
                 <button class="tab-btn active" data-tab="pending">⏳ Kutilayotgan</button>
                 <button class="tab-btn" data-tab="confirmed">✅ Tasdiqlangan</button>
                 <button class="tab-btn" data-tab="all">📋 Barcha</button>
+                <button class="tab-btn" data-tab="pos">💻 POS (Mijoz zakaz)</button>
             </div>
 
-            <!-- Statistika -->
             <div id="waiterStats" style="background: white; border-radius: 16px; padding: 15px 20px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e0d0c0;">
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <div style="background: #f0e4d4; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #c0522a;">
@@ -358,50 +381,41 @@
                         <div id="totalPeopleCount" style="font-size: 1.2rem; font-weight: bold; color: #1e293b;">0 ta</div>
                     </div>
                 </div>
-                <div style="font-size: 0.8rem; color: #8a6a50; font-style: italic;">Bugungi statistika</div>
+                <div style="font-size: 0.8rem; color: #8a6a50; font-style: italic;">
+                    <label style="display:flex; align-items:center; gap:8px;">
+                        Sana:
+                        <input type="date" id="waiterOrdersDateFilter" style="padding:8px 10px; border:1px solid #cbd5e1; border-radius:10px;">
+                    </label>
+                </div>
             </div>
-
+            
             <div id="ordersContainer" class="orders-container"></div>
-        </div>
-    </div>
-
-    <!-- Qo'shimcha taom qo'shish modali -->
-    <div class="add-items-modal-overlay" id="addItemsModal">
-        <div class="add-items-modal">
-            <div class="add-items-modal-header">
-                <h3><i class="fas fa-plus-circle" style="color:#c0522a;"></i> <span id="addItemsModalTitle">Qo'shimcha buyurtma</span></h3>
-                <button class="btn-close-modal" onclick="closeAddItemsModal()"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="add-items-modal-body">
-                <div class="add-items-search-bar">
-                    <input type="text" id="addItemsSearch" placeholder="🔍 Taom qidirish..." oninput="renderAddItemsModal()">
-                    <select id="addItemsCatFilter" onchange="renderAddItemsModal()">
-                        <option value="all">Barcha</option>
-                        <option value="🍜 Birinchi taomlar">🍜 Birinchi taomlar</option>
-                        <option value="🍽️ Ikkinchi taomlar">🍽️ Ikkinchi taomlar</option>
-                        <option value="🫓 Non va sneklar">🫓 Non va sneklar</option>
-                        <option value="🧃 Ichimliklar">🧃 Ichimliklar</option>
-                        <option value="🍰 Shirinliklar">🍰 Shirinliklar</option>
-                    </select>
+            
+            <!-- POS for customers without phone -->
+            <div id="posContainer" class="pos-container" style="display: none;">
+                <div class="pos-header">
+                    <h3><i class="fas fa-cash-register"></i> Mijoz zakaz (POS)</h3>
                 </div>
-                <div class="add-items-menu-list" id="addItemsMenuList"></div>
-                <div class="add-items-cart-summary">
-                    <h4><i class="fas fa-shopping-cart"></i> Tanlangan taomlar</h4>
-                    <div id="addItemsCartSummary">
-                        <div style="color:#94a3b8; text-align:center; padding:10px;">Hali hech narsa tanlanmagan</div>
-                    </div>
-                    <button class="btn-send-extra" id="btnSendExtraOrder" onclick="sendExtraOrder()" disabled>
-                        <i class="fas fa-print"></i> Printerga yuborish va kassaga qo'shish
-                    </button>
+                <div class="pos-table-select">
+                    <label>Stol raqami:</label>
+                    <input type="number" id="posTableNumber" min="1" placeholder="Stol raqami">
+                    <label>Kishilar soni:</label>
+                    <input type="number" id="posPeopleCount" min="1" placeholder="Kishilar soni">
+                </div>
+                <div class="pos-menu" id="posMenu"></div>
+                <div class="pos-cart" id="posCart">
+                    <h4>Savat</h4>
+                    <div id="posCartItems"></div>
+                    <div class="pos-total">Jami: <span id="posTotal">0</span> so'm</div>
+                    <button class="btn-order-pos" onclick="clearPosCart()" style="background:#64748b; margin-bottom:10px;">Savatni tozalash</button>
+                    <button class="btn-order-pos" onclick="placePosOrder()">Zakaz berish</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <button class="refresh-btn" onclick="loadOrders(); loadWaiterCalls();" title="Yangilash">
-        <i class="fas fa-sync-alt"></i>
-    </button>
-
+    
+    <button class="refresh-btn" id="refreshBtn"><i class="fas fa-sync-alt"></i></button>
+    
     <script src="config.js"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="admin-panel.js"></script>
