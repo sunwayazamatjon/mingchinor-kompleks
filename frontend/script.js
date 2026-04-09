@@ -1,7 +1,9 @@
 // ============ KONFIGURATSIYA ============
 const STORAGE_KEY = 'mingchinor_menu';
+const LANGUAGE_KEY = 'mingchinor_language';
 // API_URL endi config.js dan olinadi
 let SERVICE_FEE_PER_PERSON = 5000;
+let currentLanguage = localStorage.getItem(LANGUAGE_KEY) || 'uz';
 
 // ============ GLOBAL O‘ZGARUVCHILAR ============
 let menuData = [];
@@ -30,6 +32,54 @@ const imageModal = document.getElementById('imageModal');
 const fullScreenImage = document.getElementById('fullScreenImage');
 const imageCaption = document.getElementById('imageCaption');
 const closeImageModal = document.getElementById('closeImageModal');
+const languageSelectorOverlay = document.getElementById('languageSelectorOverlay');
+const languageBtns = document.querySelectorAll('.language-btn');
+
+// ============ TIL TANLASH ============
+function initLanguageSelector() {
+    // Agar til allaqachon tanlangan bo'lsa, selector ko'rsatmasdan davom et
+    if (localStorage.getItem(LANGUAGE_KEY)) {
+        languageSelectorOverlay.style.display = 'none';
+        initApp();
+        return;
+    }
+
+    languageSelectorOverlay.style.display = 'flex';
+
+    languageBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const lang = btn.dataset.lang;
+            selectLanguage(lang);
+        });
+    });
+}
+
+function selectLanguage(lang) {
+    currentLanguage = lang;
+    localStorage.setItem(LANGUAGE_KEY, lang);
+
+    // Barcha tugmalardan selected klassini olib tashla
+    languageBtns.forEach(btn => btn.classList.remove('selected'));
+
+    // Tanlangan til tugmasiga selected klassini qo'sh
+    document.querySelector(`[data-lang="${lang}"]`).classList.add('selected');
+
+    // Selector overlayni yashir va appni ishga tushir
+    setTimeout(() => {
+        languageSelectorOverlay.style.display = 'none';
+        initApp();
+    }, 500);
+}
+
+function initApp() {
+    // Stol tanlashni tekshirish
+    if (document.getElementById('tableSelectorOverlay')) {
+        checkTableNumber();
+    } else {
+        // Agar stol tanlash overlay bo'lmasa, to'g'ridan-to'g'ri yuklash
+        loadMenuFromAPI();
+    }
+}
 
 // ============ 1. STOL TANLASH ============
 let availableTables = [];
@@ -589,13 +639,8 @@ function closeWaiterPanel() {
 }
 
 // ============ 10. SAHIFA YUKLANGANDA ============
-// Stol tanlashni tekshirish
-if (document.getElementById('tableSelectorOverlay')) {
-    checkTableNumber();
-} else {
-    // Agar stol tanlash overlay bo'lmasa, to'g'ridan-to'g'ri yuklash
-    loadMenuFromAPI();
-}
+// Til tanlashni ishga tushirish
+initLanguageSelector();
 
 // WebSocket ulanish
 connectWebSocket();
