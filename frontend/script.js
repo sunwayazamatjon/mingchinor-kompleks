@@ -3,7 +3,7 @@ const STORAGE_KEY = 'mingchinor_menu';
 const LANGUAGE_KEY = 'mingchinor_language';
 // API_URL endi config.js dan olinadi
 let SERVICE_FEE_PER_PERSON = 5000;
-let currentLanguage = localStorage.getItem(LANGUAGE_KEY) || 'uz';
+let currentLanguage = sessionStorage.getItem(LANGUAGE_KEY) || 'uz';
 
 // ============ GLOBAL O‘ZGARUVCHILAR ============
 let menuData = [];
@@ -38,7 +38,7 @@ const languageBtns = document.querySelectorAll('.language-btn');
 // ============ TIL TANLASH ============
 function initLanguageSelector() {
     // Agar til allaqachon tanlangan bo'lsa, selector ko'rsatmasdan davom et
-    if (localStorage.getItem(LANGUAGE_KEY)) {
+    if (sessionStorage.getItem(LANGUAGE_KEY)) {
         languageSelectorOverlay.style.display = 'none';
         initApp();
         return;
@@ -56,7 +56,7 @@ function initLanguageSelector() {
 
 function selectLanguage(lang) {
     currentLanguage = lang;
-    localStorage.setItem(LANGUAGE_KEY, lang);
+    sessionStorage.setItem(LANGUAGE_KEY, lang);
 
     // Barcha tugmalardan selected klassini olib tashla
     languageBtns.forEach(btn => btn.classList.remove('selected'));
@@ -106,8 +106,8 @@ function checkTableNumber() {
         return;
     }
     
-    const savedTable = localStorage.getItem('currentTableNumber');
-    const savedPeople = localStorage.getItem('numberOfPeople');
+    const savedTable = sessionStorage.getItem('currentTableNumber');
+    const savedPeople = sessionStorage.getItem('numberOfPeople');
     if (savedTable) {
         currentTableNumber = parseInt(savedTable);
         numberOfPeople = parseInt(savedPeople) || 1;
@@ -127,8 +127,8 @@ document.getElementById('confirmTableBtn')?.addEventListener('click', () => {
     if (tableNum && tableNum > 0 && peopleNum && peopleNum > 0) {
         currentTableNumber = parseInt(tableNum);
         numberOfPeople = parseInt(peopleNum);
-        localStorage.setItem('currentTableNumber', currentTableNumber);
-        localStorage.setItem('numberOfPeople', numberOfPeople);
+        sessionStorage.setItem('currentTableNumber', currentTableNumber);
+        sessionStorage.setItem('numberOfPeople', numberOfPeople);
         document.getElementById('tableSelectorOverlay').style.display = 'none';
         loadMenuFromAPI();
     } else {
