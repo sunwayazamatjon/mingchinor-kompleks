@@ -12,13 +12,18 @@ const PRINTERS = {
         name: 'Kabobxona',
         ip: '192.168.1.13',
         port: 9100,
-        categories: ['🍽️ Ikkinchi taomlar'] // Kaboblar uchun maxsus logika pastda
+        categories: ['🍽️ Ikkinchi taomlar']
     },
     bar: {
         name: 'Bar',
         ip: '192.168.1.102',
         port: 9100,
         categories: ['🧃 Ichimliklar', '🍰 Shirinliklar']
+    },
+    cashier: {
+        name: 'Kassa',
+        ip: process.env.CASHIER_PRINTER_IP || '192.168.1.100',
+        port: 9100
     }
 };
 
@@ -145,66 +150,63 @@ async function printOrder(order) {
     return results;
 }
 
-// Mijoz uchun chek chiqarish
-async function printCustomerReceipt(order) {
-    // Mijoz cheki uchun printer (masalan, kassa printeri)
-    const customerPrinter = {
-        name: 'Kassa',
-        ip: '192.168.1.100', // Kassa printer IP
-        port: 9100
-    };
-
+// Kassir cheki (mijozga beriladigan to'liq hisob)
+function buildCashierReceipt(order) {
     const ESC = '\x1B';
-    const GS = '\x1D';
-    const lines = [];
-
+    const GS  = '\x1D';
     const cut = () => GS + 'V' + '\x01';
 
     let text = '';
-    text += ESC + '@';                          // Initialize
-    text += ESC + 'a' + '\x01';                // Center align
-    text += ESC + 'E' + '\x01';                // Bold on
-    text += 'MINGCHINOR-KOMPLEKS\n';
-    text += ESC + 'E' + '\x00';                // Bold off
-    text += '\n';
-    text += ESC + 'a' + '\x00';                // Left align
-    text += `Sana: ${new Date().toLocaleDateString('uz-UZ')}\n`;
-    text += `Vaqt: ${new Date().toLocaleTimeString('uz-UZ')}\n`;
-    text += '----------------------------\n';
+    text += ESC + '@';
+    text += ESC + 'a' + '\x01';         // Center
+    text += ESC + 'E' + '\x01';         // Bold
+    text += 'MINGCHINOR KOMPLEKS\n';
+    text += ESC + 'E' + '\x00';
+    text += 'Milliy taomlar kafesi\n';
+    text += '================================\n';
+    text += ESC + 'a' + '\x00';         // Left
+    text += `Stol: ${order.tableNumber}\n`;
+    text += `Mijozlar soni: ${order.numberOfPeople || 1} kishi\n`;
+    text += `Vaqt: ${new Date().toLocaleString('uz-UZ')}\n`;
+    text += '================================\n';
 
     order.items.forEach(item => {
-        text += `${item.name}\n`;
-        text += `${item.qty} dona x ${formatPrice(item.price)} = ${formatPrice(item.price * item.qty)}\n`;
+        const name = item.name.length > 20 ? item.name.substring(0, 18) + '..' : item.name;
+        text += `${item.qty}x ${name}\n`;
+        text += `   ${formatPrice(item.price)} x ${item.qty} = ${formatPrice(item.price * item.qty)}\n`;
     });
 
-    text += '----------------------------\n';
-    text += `Ofisant xizmat ko'rsatgan mijozlar soni: ${order.numberOfPeople || 1}\n`;
-    text += ESC + 'E' + '\x01';                // Bold on
-    text += `JAMI: ${formatPrice(order.totalAmount)}\n`;
-    text += ESC + 'E' + '\x00';                // Bold off
+    text += '--------------------------------\n';
+    const subtotal = order.items.reduce((s, i) => s + i.price * i.qty, 0);
+    if (order.serviceFee > 0) {
+        text += `Taomlar jami: ${formatPrice(subtotal)}\n`;
+        text += `Xizmat haqqi: ${formatPrice(order.serviceFee)}\n`;
+    }
+    text += ESC + 'E' + '\x01';
+    text += `JAMI TO'LOV: ${formatPrice(order.totalAmount)}\n`;
+    text += ESC + 'E' + '\x00';
+    text += '================================\n';
+    text += ESC + 'a' + '\x01';
+    text += 'Tashrifingiz uchun rahmat!\n';
+    text += 'Yana kutib qolamiz!\n';
     text += '\n\n\n';
     text += cut();
+    return Buffer.from(text, 'latin1');
+}
 
-    const buffer = Buffer.from(text, 'latin1');
-
+async function printCashierReceipt(orderData) {
     return new Promise((resolve, reject) => {
+        const buffer = buildCashierReceipt(orderData);
+        const printer = PRINTERS.cashier;
         const client = new net.Socket();
-
-        client.connect(customerPrinter.port, customerPrinter.ip, () => {
+        client.connect(printer.port, printer.ip, () => {
             client.write(buffer);
             client.end();
             resolve(true);
         });
-
-        client.on('error', (err) => {
-            reject(err);
-        });
-
-        setTimeout(() => {
-            client.destroy();
-            reject(new Error('Timeout'));
-        }, 5000);
+        client.on('error', err => reject(err));
+        setTimeout(() => { client.destroy(); reject(new Error('Cashier printer timeout')); }, 10000);
     });
 }
 
-module.exports = { printOrder, printCustomerReceipt, PRINTERS };
+module.exports = { printOrder, printCashierReceipt, PRINTERS };

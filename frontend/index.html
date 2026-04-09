@@ -180,23 +180,27 @@
         /* Ofisant chaqirish panel (floating) */
         .waiter-panel {
             position: fixed;
-            top: -200px;
+            bottom: -200px;
             left: 50%;
             transform: translateX(-50%);
-            width: auto;
+            width: calc(100% - 32px);
             max-width: 420px;
             background: linear-gradient(135deg, #1e293b, #0f172a);
-            border-radius: 24px;
+            border-radius: 24px 24px 0 0;
             padding: 20px 24px 32px;
             z-index: 1500;
-            transition: top 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+            transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 -8px 40px rgba(0,0,0,0.4);
         }
         .waiter-panel.open {
-            top: 80px;
+            bottom: 0;
         }
         .waiter-panel-handle {
-            display: none;
+            width: 40px;
+            height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            margin: 0 auto 16px;
         }
         .waiter-panel-title {
             color: white;
@@ -316,7 +320,9 @@
                     </div>
                 </div>
                 <div class="header-buttons">
-                    <button class="call-waiter-btn" id="callWaiterBtn">Ofisant chaqirish</button>
+                    <button class="call-waiter-btn" id="callWaiterBtn">
+                        <i class="fas fa-bell"></i>
+                    </button>
                     <button class="cart-icon-btn" id="cartIconBtn">
                         <i class="fas fa-shopping-basket"></i>
                         <span class="cart-badge" id="cartBadge">0</span>
@@ -361,9 +367,6 @@
                         <span>Jami:</span>
                         <strong id="cartTotalAmount">0 so'm</strong>
                     </div>
-                    <button class="btn-order" id="clearCartBtn" style="background:#64748b; margin-bottom:10px;">
-                        <i class="fas fa-trash"></i> Tozalash
-                    </button>
                     <button class="btn-order" id="orderBtn">
                         <i class="fas fa-check-circle"></i> Buyurtma berish
                     </button>
@@ -407,7 +410,7 @@
         <div class="waiter-panel" id="waiterPanel">
             <button class="waiter-panel-close" onclick="closeWaiterPanel()"><i class="fas fa-times"></i></button>
             <div class="waiter-panel-handle"></div>
-            <div class="waiter-panel-title"><i class="fas fa-concierge-bell" style="color:#f59e0b;"></i></div>
+            <div class="waiter-panel-title"><i class="fas fa-concierge-bell" style="color:#f59e0b;"></i> Ofisant chaqirish</div>
             <div class="waiter-panel-subtitle">Ofisant sizning stolingizga keladi</div>
             <div class="waiter-panel-info">
                 <div class="waiter-info-item">

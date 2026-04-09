@@ -1,6 +1,5 @@
 // ============ KONFIGURATSIYA ============
 const STORAGE_KEY = 'mingchinor_menu';
-const ORDER_SESSION_KEY = 'mingchinor_has_active_order';
 // API_URL endi config.js dan olinadi
 let SERVICE_FEE_PER_PERSON = 5000;
 
@@ -12,22 +11,6 @@ let currentTableNumber = null;
 let numberOfPeople = 1;
 let socket = null;
 
-function normalizeCategory(category) {
-    return String(category || '').trim();
-}
-
-function getAvailableMenuItems() {
-    return menuData.filter(item => item.available !== false);
-}
-
-function getItemBadge(item) {
-    return (item?.emoji || '').trim() || (item?.name || '?').trim().charAt(0).toUpperCase() || '?';
-}
-
-function getItemDisplayName(item) {
-    return `${item?.emoji ? `${item.emoji} ` : ''}${item?.name || ''}`.trim();
-}
-
 // ============ DOM ELEMENTLARI ============
 const menuContainer = document.getElementById('menuContainer');
 const categoriesContainer = document.getElementById('categoriesContainer');
@@ -37,7 +20,6 @@ const cartTotalAmount = document.getElementById('cartTotalAmount');
 const cartBadge = document.getElementById('cartBadge');
 const cartIconBtn = document.getElementById('cartIconBtn');
 const closeCartBtn = document.getElementById('closeCartBtn');
-const clearCartBtn = document.getElementById('clearCartBtn');
 const orderBtn = document.getElementById('orderBtn');
 const qrModal = document.getElementById('qrModal');
 const successModal = document.getElementById('successModal');
@@ -52,24 +34,16 @@ const closeImageModal = document.getElementById('closeImageModal');
 // ============ 1. STOL TANLASH ============
 let availableTables = [];
 
-function clearTableSession() {
-    currentTableNumber = null;
-    numberOfPeople = 1;
-    localStorage.removeItem('currentTableNumber');
-    localStorage.removeItem('numberOfPeople');
-    localStorage.removeItem(ORDER_SESSION_KEY);
-}
-
 async function loadTables() {
     try {
-        const res = await fetch(`${API_URL}/api/admin/tables`, { cache: 'no-store' });
+        const res = await fetch(`${API_URL}/api/admin/tables`);
         availableTables = await res.json();
     } catch (err) {
         console.error('Tables load error:', err);
     }
 }
 
-async function checkTableNumber() {
+function checkTableNumber() {
     const urlParams = new URLSearchParams(window.location.search);
     const tableFromUrl = urlParams.get('table');
     const peopleFromUrl = urlParams.get('people');
@@ -85,14 +59,6 @@ async function checkTableNumber() {
     const savedTable = localStorage.getItem('currentTableNumber');
     const savedPeople = localStorage.getItem('numberOfPeople');
     if (savedTable) {
-        await loadTables();
-        const savedTableInfo = availableTables.find(table => table.number === parseInt(savedTable));
-        const hasActiveOrder = localStorage.getItem(ORDER_SESSION_KEY) === 'true';
-        if (hasActiveOrder && savedTableInfo?.status === 'free') {
-            clearTableSession();
-            document.getElementById('tableSelectorOverlay').style.display = 'flex';
-            return;
-        }
         currentTableNumber = parseInt(savedTable);
         numberOfPeople = parseInt(savedPeople) || 1;
         document.getElementById('tableSelectorOverlay').style.display = 'none';
@@ -124,29 +90,17 @@ document.getElementById('confirmTableBtn')?.addEventListener('click', () => {
 async function loadMenuFromAPI() {
     try {
         const [menuRes, configRes] = await Promise.all([
-            fetch(`${API_URL}/api/menu`, { cache: 'no-store' }),
-            fetch(`${API_URL}/api/config`, { cache: 'no-store' }).catch(() => null),
+            fetch(`${API_URL}/api/menu`),
+            fetch(`${API_URL}/api/config`).catch(() => null),
             loadTables().catch(() => null)
         ]);
         
-        menuData = (await menuRes.json()).map(item => ({
-            ...item,
-            category: normalizeCategory(item.category)
-        }));
+        menuData = await menuRes.json();
         
         if (configRes && configRes.ok) {
             const configData = await configRes.json();
             if (configData && configData.service_fee !== undefined) {
                 SERVICE_FEE_PER_PERSON = configData.service_fee;
-            }
-        }
-
-        if (currentTableNumber && localStorage.getItem(ORDER_SESSION_KEY) === 'true') {
-            const activeTable = availableTables.find(table => table.number === currentTableNumber);
-            if (activeTable?.status === 'free') {
-                clearTableSession();
-                document.getElementById('tableSelectorOverlay').style.display = 'flex';
-                return;
             }
         }
 
@@ -164,10 +118,7 @@ async function loadMenuFromAPI() {
 function loadMenuFromLocal() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-        menuData = JSON.parse(stored).map(item => ({
-            ...item,
-            category: normalizeCategory(item.category)
-        }));
+        menuData = JSON.parse(stored);
     } else {
         menuData = getDefaultMenu();
         saveMenuToLocal();
@@ -208,18 +159,7 @@ function saveMenuToLocal() {
 
 // ============ 3. KATEGORIYALAR ============
 function renderCategories() {
-    const availableCategories = [...new Set(getAvailableMenuItems().map(item => normalizeCategory(item.category)).filter(Boolean))];
-    const fallbackCategories = [...new Set(menuData.map(item => normalizeCategory(item.category)).filter(Boolean))];
-    const categoryList = availableCategories.length > 0 ? availableCategories : fallbackCategories;
-    const categories = ['all', ...categoryList];
-    if (currentCategory !== 'all' && !categories.includes(currentCategory)) {
-        currentCategory = 'all';
-    }
-    const wrapper = document.querySelector('.categories-wrapper');
-    if (wrapper) {
-        wrapper.style.display = categories.length > 1 ? 'block' : 'none';
-    }
-    if (!categoriesContainer) return;
+    const categories = ['all', ...new Set(menuData.map(item => item.category))];
     categoriesContainer.innerHTML = categories.map(cat => `
         <button class="category-chip ${currentCategory === cat ? 'active' : ''}" data-category="${cat}">
             ${cat === 'all' ? '<i class="fas fa-border-all"></i> Barchasi' : cat}
@@ -237,10 +177,9 @@ function renderCategories() {
 
 // ============ 4. MENYUNI RENDER QILISH ============
 function renderMenu() {
-    const availableMenu = getAvailableMenuItems();
     const filtered = currentCategory === 'all' 
-        ? availableMenu 
-        : availableMenu.filter(item => item.category === currentCategory);
+        ? menuData 
+        : menuData.filter(item => item.category === currentCategory);
     
     const grouped = filtered.reduce((acc, item) => {
         if (!acc[item.category]) acc[item.category] = [];
@@ -258,11 +197,11 @@ function renderMenu() {
         html += `<div class="section-title">${category}</div>`;
         html += items.map(item => `
             <div class="item-card ${!item.available ? 'unavailable' : ''}" data-id="${item.id}">
-                <div class="item-emoji" onclick='openImageModal(${JSON.stringify(item.image || "")}, ${JSON.stringify(item.name)}, ${JSON.stringify(item.emoji)})'>
-                    ${item.image ? `<img src="${item.image}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 12px;" onerror="this.src='https://via.placeholder.com/48?text=${encodeURIComponent(getItemBadge(item))}'">` : getItemBadge(item)}
+                <div class="item-emoji" onclick="openImageModal('${item.image || ''}', '${item.name}', '${item.emoji}')">
+                    ${item.image ? `<img src="${item.image}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 12px;" onerror="this.src='https://via.placeholder.com/48?text=${encodeURIComponent(item.emoji)}'">` : item.emoji}
                 </div>
                 <div class="item-info">
-                    <div class="item-name">${item.name}</div>
+                    <div class="item-name">${item.name}${!item.available ? ' ⏸️' : ''}</div>
                     <div class="item-desc">${item.desc || ''}</div>
                     <div class="item-price">${formatPrice(item.price)}</div>
                 </div>
@@ -321,13 +260,6 @@ function updateQuantity(id, delta) {
     updateCartUI();
 }
 
-function clearCart() {
-    cart = {};
-    saveCartToLocal();
-    updateCartUI();
-    menuData.forEach(item => renderControl(item));
-}
-
 function saveCartToLocal() {
     localStorage.setItem('mingchinor_cart', JSON.stringify(cart));
 }
@@ -336,12 +268,6 @@ function loadCartFromLocal() {
     const stored = localStorage.getItem('mingchinor_cart');
     if (stored) {
         cart = JSON.parse(stored);
-        Object.keys(cart).forEach(id => {
-            if (!menuData.find(item => item.id == id && item.available !== false)) {
-                delete cart[id];
-            }
-        });
-        saveCartToLocal();
         updateCartUI();
         menuData.forEach(item => renderControl(item));
     }
@@ -369,7 +295,7 @@ function updateCartUI() {
             ${items.map(e => `
                 <div class="cart-item" style="display: flex; flex-direction: column; align-items: stretch; padding: 12px; gap: 8px;">
                     <div style="display: flex; justify-content: space-between;">
-                        <strong>${getItemDisplayName(e.item) || e.item.name}</strong>
+                        <strong>${e.item.emoji} ${e.item.name}</strong>
                         <span>${formatPrice(e.qty * e.item.price)}</span>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
@@ -498,7 +424,6 @@ async function placeOrder() {
         
         if (result.success) {
             successModal.classList.add('open');
-            localStorage.setItem(ORDER_SESSION_KEY, 'true');
             cart = {};
             saveCartToLocal();
             updateCartUI();
@@ -534,8 +459,9 @@ function closeModal() {
 }
 
 function openImageModal(img, name, emoji) {
-    fullScreenImage.src = img || `https://via.placeholder.com/400?text=${encodeURIComponent(emoji || name || 'Taom')}`;
-    imageCaption.textContent = `${emoji ? `${emoji} ` : ''}${name}`;
+    if (!img) return;
+    fullScreenImage.src = img;
+    imageCaption.textContent = `${emoji} ${name}`;
     imageModal.classList.add('open');
 }
 
@@ -635,7 +561,6 @@ function showWaiterCallNotification(data) {
 // ============ 9. EVENT LISTENERLAR ============
 if (cartIconBtn) cartIconBtn.addEventListener('click', () => cartOverlay.classList.add('open'));
 if (closeCartBtn) closeCartBtn.addEventListener('click', () => cartOverlay.classList.remove('open'));
-if (clearCartBtn) clearCartBtn.addEventListener('click', clearCart);
 if (orderBtn) orderBtn.addEventListener('click', placeOrder);
 if (closeSuccessBtn) closeSuccessBtn.addEventListener('click', closeModal);
 if (closeImageModal) closeImageModal.addEventListener('click', closeImageModalHandler);
@@ -679,5 +604,3 @@ connectWebSocket();
 setInterval(() => {
     loadMenuFromAPI();
 }, 10000);
-
-

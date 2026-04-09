@@ -3,62 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mingchinor Kafe | Admin Panel - Menyu boshqarish</title>
+    <title>Mingchinor Kafe | Admin Panel</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <style>
-        .admin-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .admin-header {
+        /* ===== DASHBOARD LAYOUT ===== */
+        .dashboard-wrapper {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--border-color);
-            flex-wrap: wrap;
-            gap: 16px;
+            min-height: 100vh;
+            background: #f1f5f9;
         }
-        .admin-title {
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: #fff;
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            z-index: 200;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.18);
+            overflow-y: auto;
+        }
+        .sidebar-brand {
+            padding: 28px 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .sidebar-brand h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+        .sidebar-brand p {
+            font-size: 11px;
+            color: rgba(255,255,255,0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 12px;
+        }
+        .sidebar-nav-item {
             display: flex;
             align-items: center;
             gap: 12px;
-        }
-        .admin-title i {
-            font-size: 28px;
-            color: var(--primary-color);
-        }
-        .logout-btn {
-            padding: 10px 24px;
-            background: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 10px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 4px;
             cursor: pointer;
+            font-size: 14px;
             font-weight: 600;
+            color: rgba(255,255,255,0.65);
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
             transition: all 0.2s;
         }
-        .add-item-card, .edit-item-card {
+        .sidebar-nav-item:hover {
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+        }
+        .sidebar-nav-item.active {
+            background: linear-gradient(135deg, #c0522a, #a0411e);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(192,82,42,0.35);
+        }
+        .sidebar-nav-item i {
+            width: 18px;
+            font-size: 15px;
+        }
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.08);
+            margin: 12px 12px;
+        }
+        .sidebar-service-fee {
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            margin: 0 12px 12px;
+        }
+        .sidebar-service-fee label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        .sidebar-service-fee input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.08);
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .sidebar-service-fee input::placeholder { color: rgba(255,255,255,0.3); }
+        .btn-save-fee {
+            width: 100%;
+            margin-top: 8px;
+            padding: 7px;
+            border-radius: 8px;
+            border: none;
+            background: #10b981;
+            color: white;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-save-fee:hover { background: #059669; }
+        .sidebar-logout {
+            padding: 12px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .btn-sidebar-logout {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(239,68,68,0.12);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 12px;
+            color: #f87171;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s;
+        }
+        .btn-sidebar-logout:hover {
+            background: rgba(239,68,68,0.25);
+            color: #fca5a5;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 28px 28px 60px;
+            min-height: 100vh;
+        }
+        .page-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-title i { color: #c0522a; }
+
+        /* ===== CARDS ===== */
+        .admin-card {
             background: white;
             border-radius: 20px;
             padding: 24px;
-            margin-bottom: 30px;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
         }
-        .edit-item-card {
-            background: linear-gradient(135deg, #fef7e8, #fff);
-            border-left: 4px solid var(--primary-color);
+        .admin-card h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+        .admin-card h3 i { color: #c0522a; }
+
+        /* ===== FORM ===== */
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
             margin-bottom: 20px;
         }
@@ -69,541 +198,772 @@
         }
         .form-group label {
             font-weight: 600;
-            font-size: 14px;
-            color: var(--text-secondary);
+            font-size: 13px;
+            color: #64748b;
         }
         .form-group input, .form-group select, .form-group textarea {
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            padding: 11px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
             font-size: 14px;
+            color: #1e293b;
             transition: all 0.2s;
+            background: #f8fafc;
         }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
             outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(192, 82, 42, 0.1);
+            border-color: #c0522a;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(192,82,42,0.1);
         }
-        .image-preview {
-            width: 80px;
-            height: 80px;
-            object-fit: cover;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            margin-top: 8px;
-        }
-        .btn-add-item, .btn-update-item {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+
+        /* ===== BUTTONS ===== */
+        .btn-primary {
+            padding: 11px 22px;
+            background: linear-gradient(135deg, #c0522a, #a0411e);
             color: white;
-            padding: 12px 24px;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             font-weight: 600;
+            font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        .btn-update-item {
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(192,82,42,0.3); }
+        .btn-secondary {
+            padding: 11px 22px;
+            background: #f1f5f9;
+            color: #475569;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-secondary:hover { background: #e2e8f0; }
+        .btn-green {
+            padding: 11px 22px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-green:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(16,185,129,0.3); }
+        .btn-blue {
+            padding: 11px 22px;
             background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        .search-section {
-            margin-bottom: 24px;
+        .btn-blue:hover { transform: translateY(-1px); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+        .btn-danger { background: #ef4444; }
+        .btn-danger:hover { background: #dc2626; }
+
+        /* ===== TABLE ===== */
+        .data-table {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+        .table-head {
+            display: grid;
+            background: #f8fafc;
+            padding: 14px 16px;
+            font-weight: 700;
+            font-size: 13px;
+            color: #64748b;
+            border-bottom: 1px solid #e2e8f0;
+            gap: 8px;
+        }
+        .table-row-item {
+            display: grid;
+            padding: 13px 16px;
+            align-items: center;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+            gap: 8px;
+            transition: background 0.15s;
+        }
+        .table-row-item:hover { background: #f8fafc; cursor: pointer; }
+        .table-row-item:last-child { border-bottom: none; }
+        .table-row-item.unavailable { opacity: 0.55; background: #fef2f2; }
+
+        /* ===== STATUS BADGES ===== */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+        .badge-yellow { background: #fef3c7; color: #92400e; }
+
+        /* ===== HISOBOT SECTION ===== */
+        .report-cards-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .report-card {
+            background: white;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .report-card-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .report-card-header h3 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .report-card-body {
+            padding: 20px 24px;
+        }
+        .report-filters {
             display: flex;
             gap: 12px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            margin-bottom: 20px;
+        }
+        .report-filters .form-group { margin-bottom: 0; }
+        .report-filters input[type="date"], .report-filters select, .report-filters input[type="time"] {
+            padding: 9px 12px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 13px;
+            background: #f8fafc;
+        }
+        .stat-numbers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .stat-box {
+            padding: 18px 20px;
+            border-radius: 14px;
+            text-align: center;
+        }
+        .stat-box .stat-val {
+            font-size: 22px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            line-height: 1;
+        }
+        .stat-box .stat-label {
+            font-size: 12px;
+            font-weight: 600;
+            opacity: 0.8;
+        }
+        .stat-box.blue { background: linear-gradient(135deg, #eff6ff, #dbeafe); color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .stat-box.red { background: linear-gradient(135deg, #fff1f2, #ffe4e6); color: #be123c; border: 1px solid #fecdd3; }
+        .stat-box.green { background: linear-gradient(135deg, #f0fdf4, #dcfce7); color: #047857; border: 1px solid #a7f3d0; }
+        .stat-box.amber { background: linear-gradient(135deg, #fffbeb, #fef3c7); color: #b45309; border: 1px solid #fde68a; }
+
+        /* ===== MENU TAB ===== */
+        .search-section {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
         .search-section input {
             flex: 1;
-            padding: 12px 16px;
-            border: 1px solid var(--border-color);
+            padding: 11px 16px;
+            border: 1.5px solid #e2e8f0;
             border-radius: 40px;
             font-size: 14px;
-            min-width: 200px;
+            min-width: 180px;
+            background: white;
         }
         .search-section select {
-            padding: 12px 16px;
-            border: 1px solid var(--border-color);
+            padding: 11px 16px;
+            border: 1.5px solid #e2e8f0;
             border-radius: 40px;
             font-size: 14px;
             background: white;
         }
-        .items-table {
-            background: white;
-            border-radius: 20px;
-            overflow-x: auto;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
-        }
-        .table-header {
-            display: grid;
-            grid-template-columns: 60px 80px 1.5fr 1fr 100px 100px 120px;
-            background: var(--bg-secondary);
-            padding: 16px;
-            font-weight: 700;
-            border-bottom: 1px solid var(--border-color);
-            gap: 8px;
-        }
-        .table-row {
-            display: grid;
-            grid-template-columns: 60px 80px 1.5fr 1fr 100px 100px 120px;
-            padding: 12px 16px;
-            align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            transition: background 0.2s;
-            gap: 8px;
-        }
-        .table-row:hover {
-            background: var(--bg-secondary);
-            cursor: pointer;
-        }
-        .table-row.unavailable {
-            opacity: 0.6;
-            background: #fef2f2;
-        }
-        .item-image {
-            width: 60px;
-            height: 60px;
+        .table-col-7 { grid-template-columns: 50px 70px 1.5fr 1fr 100px 90px 150px; }
+        .table-col-5 { grid-template-columns: 80px 1.5fr 1fr 1fr 100px; }
+
+        .item-image-sm {
+            width: 52px;
+            height: 52px;
             object-fit: cover;
-            border-radius: 12px;
+            border-radius: 10px;
             background: #f0f0f0;
         }
-        .item-status {
+        .item-status-badge {
             display: inline-block;
-            padding: 4px 10px;
+            padding: 3px 9px;
             border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
+            font-size: 11px;
+            font-weight: 700;
         }
-        .status-available {
-            background: #10b98120;
-            color: #10b981;
-        }
-        .status-unavailable {
-            background: #ef444420;
-            color: #ef4444;
-        }
-        .action-buttons {
+        .status-available { background: #d1fae5; color: #065f46; }
+        .status-unavailable { background: #fee2e2; color: #991b1b; }
+
+        .action-btns {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
         }
-        .btn-edit, .btn-toggle, .btn-delete {
-            padding: 6px 12px;
+        .btn-xs {
+            padding: 5px 10px;
             border: none;
-            border-radius: 8px;
+            border-radius: 7px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             transition: all 0.2s;
         }
-        .btn-edit {
-            background: #3b82f6;
-            color: white;
+        .btn-xs.edit { background: #3b82f6; color: white; }
+        .btn-xs.toggle { background: #c0522a; color: white; }
+        .btn-xs.del { background: #ef4444; color: white; }
+
+        .edit-item-box {
+            background: linear-gradient(135deg, #fef7e8, #fff);
+            border: 1px solid #fde68a;
+            border-left: 4px solid #f59e0b;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
-        .btn-edit:hover {
-            background: #2563eb;
+        .image-preview-sm {
+            width: 72px;
+            height: 72px;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            margin-top: 6px;
         }
-        .btn-toggle {
-            background: var(--primary-color);
-            color: white;
+
+        /* ===== KASSA TAB ===== */
+        .kassa-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
         }
-        .btn-toggle:hover {
-            background: #a0411e;
+        .kassa-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
-        .btn-delete {
-            background: #ef4444;
-            color: white;
+        .kassa-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
         }
-        .btn-delete:hover {
-            background: #dc2626;
+        .kassa-table-label {
+            font-size: 18px;
+            font-weight: 800;
+            color: #1e293b;
+            background: #f0e4d4;
+            padding: 4px 14px;
+            border-radius: 20px;
         }
-        .selected-item-info {
-            background: #fef3e8;
+        .kassa-items { margin: 12px 0; }
+        .kassa-item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 13px;
+            border-bottom: 1px dashed #f1f5f9;
+        }
+        .kassa-total {
+            font-weight: 800;
+            font-size: 16px;
+            color: #1e293b;
+            text-align: right;
+            margin: 10px 0;
+        }
+        .btn-print-bill {
+            width: 100%;
             padding: 12px;
+            background: linear-gradient(135deg, #c0522a, #a0411e);
+            color: white;
+            border: none;
             border-radius: 12px;
-            margin-bottom: 16px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
         }
-        .selected-item-info img {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-        }
-        .qr-code-section {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-top: 30px;
-            border: 1px solid var(--border-color);
-            text-align: center;
-        }
+        .btn-print-bill:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(192,82,42,0.3); }
+
+        /* ===== TOAST ===== */
         .toast-notification {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            background: #2a1a0e;
+            background: #1e293b;
             color: white;
             padding: 12px 24px;
             border-radius: 40px;
             font-weight: 500;
+            font-size: 14px;
             z-index: 2000;
-            transform: translateX(100px);
+            transform: translateX(120px);
             opacity: 0;
             transition: all 0.3s;
+            max-width: 340px;
         }
         .toast-notification.show {
             transform: translateX(0);
             opacity: 1;
         }
+
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 900px) {
-            .table-header, .table-row {
-                grid-template-columns: 50px 60px 1.5fr 80px 70px;
-                gap: 6px;
+            .sidebar { width: 220px; }
+            .main-content { margin-left: 220px; padding: 16px; }
+        }
+        @media (max-width: 680px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                flex-direction: row;
+                flex-wrap: wrap;
             }
-            .table-header :nth-child(4), .table-row :nth-child(4),
-            .table-header :nth-child(5), .table-row :nth-child(5) {
-                display: none;
-            }
-        }
-        @media (max-width: 600px) {
-            .table-header, .table-row {
-                grid-template-columns: 40px 50px 1fr 70px;
-            }
-        }
-        .admin-nav {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 12px;
-        }
-        .nav-btn {
-            padding: 10px 20px;
-            border: none;
-            background: none;
-            font-weight: 600;
-            color: var(--text-secondary);
-            cursor: pointer;
-            border-radius: 10px;
-            transition: all 0.2s;
-        }
-        .nav-btn.active {
-            background: var(--primary-gradient);
-            color: white;
+            .main-content { margin-left: 0; }
+            .sidebar-nav { display: flex; flex-wrap: wrap; padding: 8px; }
+            .sidebar-nav-item { width: auto; flex: 1; min-width: 90px; justify-content: center; padding: 10px 8px; font-size: 12px; }
+            .sidebar-service-fee, .sidebar-logout { display: none; }
         }
     </style>
 </head>
 <body>
+    <!-- Login overlay -->
     <div class="login-overlay" id="loginOverlay">
         <div class="login-card">
-            <div class="login-icon">
-                <i class="fas fa-lock"></i>
-            </div>
+            <div class="login-icon"><i class="fas fa-lock"></i></div>
             <h2>Admin Panel</h2>
-            <p>Menyuni boshqarish uchun parol kiriting</p>
-            <input type="password" id="adminPassword" placeholder="Parol" class="login-input">
+            <p>Kirish uchun parolni kiriting</p>
+            <input type="password" id="adminPassword" placeholder="Parol" class="login-input" onkeydown="if(event.key==='Enter') checkAdminLogin()">
             <button onclick="checkAdminLogin()" class="btn-login">Kirish</button>
             <div id="loginError" class="error-message"></div>
         </div>
     </div>
 
-    <div class="admin-container" id="adminContent" style="display: none;">
-        <div class="admin-header">
-            <div class="admin-title">
-                <i class="fas fa-crown"></i>
-                <h2>Mingchinor Kafe - Menyu boshqarish</h2>
+    <!-- Dashboard Layout -->
+    <div class="dashboard-wrapper" id="adminContent" style="display: none;">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2><i class="fas fa-crown" style="color:#f59e0b;margin-right:8px;"></i>Mingchinor</h2>
+                <p>Admin Dashboard</p>
             </div>
-            <div style="display: flex; gap: 12px; align-items: center;">
-                <button class="btn-add-item" onclick="openStatsModal()" style="background: #10b981;">
+            <nav class="sidebar-nav">
+                <button class="sidebar-nav-item" id="nav-reports" onclick="switchTab('reports')">
                     <i class="fas fa-chart-bar"></i> Hisobot
                 </button>
-                <button class="logout-btn" onclick="logout()">
+                <button class="sidebar-nav-item active" id="nav-menu" onclick="switchTab('menu')">
+                    <i class="fas fa-utensils"></i> Menyu
+                </button>
+                <button class="sidebar-nav-item" id="nav-cashier" onclick="switchTab('cashier')">
+                    <i class="fas fa-cash-register"></i> Kassa
+                </button>
+                <button class="sidebar-nav-item" id="nav-waiters" onclick="switchTab('waiters')">
+                    <i class="fas fa-user-plus"></i> Ofisant qo'shish
+                </button>
+                <button class="sidebar-nav-item" id="nav-tables" onclick="switchTab('tables')">
+                    <i class="fas fa-table"></i> Stollar
+                </button>
+            </nav>
+
+            <div class="sidebar-divider"></div>
+            <!-- Ofisant xizmat narxi -->
+            <div class="sidebar-service-fee">
+                <label><i class="fas fa-user-tie"></i> Xizmat narxi (kishi/so'm)</label>
+                <input type="number" id="serviceFeeInput" placeholder="5000" min="0">
+                <button class="btn-save-fee" onclick="saveSystemConfig()">
+                    <i class="fas fa-save"></i> Saqlash
+                </button>
+            </div>
+            <div class="sidebar-divider"></div>
+            <!-- Chiqish -->
+            <div class="sidebar-logout">
+                <button class="btn-sidebar-logout" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> Chiqish
                 </button>
             </div>
-        </div>
+        </aside>
 
-        <div class="add-item-card" style="background: linear-gradient(135deg, #eff6ff, #dbeafe); border-left: 4px solid #3b82f6;">
-            <h3><i class="fas fa-key"></i> Ofisant paroli</h3>
-            <p>Ofisant paneli uchun kirish parolini bu yerda ko'rsatishingiz mumkin.</p>
-            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px;">
-                <code id="waiterPasswordDisplay" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px 16px; font-size: 1rem;">•••••••••••</code>
-                <button class="btn-add-item" style="background: #3b82f6;" onclick="copyWaiterPassword()">
-                    <i class="fas fa-copy"></i> Nusxalash
-                </button>
-            </div>
-            <small style="color: #475569;">Admin tizimiga kirganingizdan so'ng parol avtomatik tarzda ko'rsatiladi.</small>
-        </div>
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- ===== HISOBOT ===== -->
+            <div id="tab-reports" style="display:none;">
+                <h2 class="page-title"><i class="fas fa-chart-bar"></i> Hisobot</h2>
+                <div class="report-cards-grid">
+                    <!-- 1: Sotuvlar hisoboti -->
+                    <div class="report-card">
+                        <div class="report-card-header">
+                            <h3><i class="fas fa-chart-line" style="color:#3b82f6;"></i> Sotuvlar hisoboti</h3>
+                        </div>
+                        <div class="report-card-body">
+                            <div class="report-filters">
+                                <div class="form-group">
+                                    <label>Boshlanish sanasi</label>
+                                    <input type="date" id="salesDateFrom">
+                                </div>
+                                <div class="form-group">
+                                    <label>Tugash sanasi</label>
+                                    <input type="date" id="salesDateTo">
+                                </div>
+                                <button class="btn-blue" onclick="loadSalesReport()" style="align-self:flex-end;">
+                                    <i class="fas fa-sync"></i> Yukla
+                                </button>
+                            </div>
+                            <div class="stat-numbers" id="salesSummaryNumbers">
+                                <div class="stat-box blue">
+                                    <div class="stat-val" id="salesRevenue">—</div>
+                                    <div class="stat-label">Jami tushum</div>
+                                </div>
+                                <div class="stat-box red">
+                                    <div class="stat-val" id="salesCost">—</div>
+                                    <div class="stat-label">Tan narxi</div>
+                                </div>
+                                <div class="stat-box green">
+                                    <div class="stat-val" id="salesProfit">—</div>
+                                    <div class="stat-label">Sof foyda</div>
+                                </div>
+                                <div class="stat-box amber">
+                                    <div class="stat-val" id="salesOrders">—</div>
+                                    <div class="stat-label">Buyurtmalar soni</div>
+                                </div>
+                            </div>
+                            <div class="data-table" id="salesItemsTable">
+                                <div style="padding:24px; text-align:center; color:#94a3b8;">Yukla tugmasini bosing</div>
+                            </div>
+                        </div>
+                    </div>
 
-        <div class="admin-nav">
-            <button class="nav-btn active" onclick="switchTab('menu')"><i class="fas fa-utensils"></i> Menyu</button>
-            <button class="nav-btn" onclick="switchTab('waiters')"><i class="fas fa-users-cog"></i> Ofisantlar</button>
-            <button class="nav-btn" onclick="switchTab('tables')"><i class="fas fa-table"></i> Stollar</button>
-            <button class="nav-btn" onclick="switchTab('cashier')"><i class="fas fa-cash-register"></i> Kassa</button>
-            <button class="nav-btn" onclick="switchTab('config')"><i class="fas fa-cog"></i> Sozlamalar</button>
-        </div>
+                    <!-- 2: Cheklar tarixi -->
+                    <div class="report-card">
+                        <div class="report-card-header">
+                            <h3><i class="fas fa-receipt" style="color:#10b981;"></i> Cheklar tarixi</h3>
+                        </div>
+                        <div class="report-card-body">
+                            <div class="report-filters">
+                                <div class="form-group">
+                                    <label>Boshlanish sanasi</label>
+                                    <input type="date" id="checksDateFrom">
+                                </div>
+                                <div class="form-group">
+                                    <label>Tugash sanasi</label>
+                                    <input type="date" id="checksDateTo">
+                                </div>
+                                <div class="form-group">
+                                    <label>Stol raqami</label>
+                                    <select id="checksTableFilter">
+                                        <option value="all">Barchasi</option>
+                                    </select>
+                                </div>
+                                <button class="btn-green" onclick="loadChecksHistory()" style="align-self:flex-end;">
+                                    <i class="fas fa-sync"></i> Yukla
+                                </button>
+                            </div>
+                            <div id="checksHistoryContainer">
+                                <div style="padding:24px; text-align:center; color:#94a3b8;">Yukla tugmasini bosing</div>
+                            </div>
+                        </div>
+                    </div>
 
-        <div id="tab-menu">
-            <!-- Search Section -->
-            <div class="search-section">
-                <input type="text" id="searchItemInput" placeholder="🔍 Taom nomi yoki ID bo'yicha qidirish...">
-                <select id="categoryFilter">
-                    <option value="all">Barcha kategoriyalar</option>
-                </select>
-            </div>
-
-            <div class="add-item-card" style="background: linear-gradient(135deg, #f8fafc, #e2e8f0); border-left: 4px solid #3b82f6;">
-                <h3><i class="fas fa-tags"></i> Kategoriyalar</h3>
-                <div style="display:flex; flex-wrap: wrap; gap:12px; align-items:center; margin-bottom:12px;">
-                    <input type="text" id="newCategoryName" placeholder="Yangi kategoriya nomi" style="flex:1; min-width:180px; padding:12px; border:1px solid #cbd5e1; border-radius:10px;">
-                    <button class="btn-add-item" onclick="addCategory()" style="padding:12px 18px;">Qo'shish</button>
+                    <!-- 3: Ofisant statistikasi -->
+                    <div class="report-card">
+                        <div class="report-card-header">
+                            <h3><i class="fas fa-user-tie" style="color:#c0522a;"></i> Ofisant statistikasi</h3>
+                        </div>
+                        <div class="report-card-body">
+                            <div class="report-filters">
+                                <div class="form-group">
+                                    <label>Boshlanish sanasi</label>
+                                    <input type="date" id="waiterDateFrom">
+                                </div>
+                                <div class="form-group">
+                                    <label>Tugash sanasi</label>
+                                    <input type="date" id="waiterDateTo">
+                                </div>
+                                <div class="form-group">
+                                    <label>Soat (boshlanish)</label>
+                                    <input type="time" id="waiterStartHour" value="08:00">
+                                </div>
+                                <div class="form-group">
+                                    <label>Soat (tugash)</label>
+                                    <input type="time" id="waiterEndHour" value="22:00">
+                                </div>
+                                <button class="btn-primary" onclick="loadWaiterReport()" style="align-self:flex-end;">
+                                    <i class="fas fa-sync"></i> Yukla
+                                </button>
+                            </div>
+                            <div id="waiterReportContainer">
+                                <div style="padding:24px; text-align:center; color:#94a3b8;">Yukla tugmasini bosing</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div id="categoryManagerList"></div>
             </div>
 
-            <!-- Add New Item Form -->
-            <div class="add-item-card">
-                <h3><i class="fas fa-plus-circle"></i> Yangi taom qo'shish</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Taom nomi *</label>
-                        <input type="text" id="itemName" placeholder="Masalan: Osh">
-                    </div>
-                    <div class="form-group">
-                        <label>Emoji</label>
-                        <input type="text" id="itemEmoji" placeholder="🍚">
-                    </div>
-                    <div class="form-group">
-                        <label>Sotilish narxi (so'm) *</label>
-                        <input type="number" id="itemPrice" placeholder="35000">
-                    </div>
-                    <div class="form-group">
-                        <label>Tan narxi (so'm) *</label>
-                        <input type="number" id="itemCost" placeholder="22000">
-                    </div>
-                    <div class="form-group">
-                        <label>Kategoriya *</label>
-                        <select id="itemCategory"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Tavsif</label>
-                        <textarea id="itemDesc" rows="2" placeholder="Qisqacha tavsif..."></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Rasm (URL yoki fayl)</label>
-                        <input type="file" id="itemImageFile" accept="image/*">
-                        <input type="text" id="itemImageUrl" placeholder="https://... yoki fayl tanlang" style="margin-top: 8px;">
-                    </div>
+            <!-- ===== MENYU ===== -->
+            <div id="tab-menu">
+                <h2 class="page-title"><i class="fas fa-utensils"></i> Menyu boshqarish</h2>
+                <!-- Search -->
+                <div class="search-section">
+                    <input type="text" id="searchItemInput" placeholder="🔍 Taom nomi yoki ID bo'yicha qidirish...">
+                    <select id="categoryFilter">
+                        <option value="all">Barcha kategoriyalar</option>
+                        <option value="🍜 Birinchi taomlar">🍜 Birinchi taomlar</option>
+                        <option value="🍽️ Ikkinchi taomlar">🍽️ Ikkinchi taomlar</option>
+                        <option value="🫓 Non va sneklar">🫓 Non va sneklar</option>
+                        <option value="🧃 Ichimliklar">🧃 Ichimliklar</option>
+                        <option value="🍰 Shirinliklar">🍰 Shirinliklar</option>
+                    </select>
                 </div>
-                <button class="btn-add-item" onclick="addNewItem()">
-                    <i class="fas fa-save"></i> Taomni qo'shish
-                </button>
-            </div>
 
-            <!-- Edit Item Section (Tahrirlash) -->
-            <div class="edit-item-card" id="editItemCard" style="display: none;">
-                <h3><i class="fas fa-edit"></i> Taomni tahrirlash</h3>
-                <div id="selectedItemInfo" class="selected-item-info"></div>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Taom nomi</label>
-                        <input type="text" id="editItemName">
+                <!-- Yangi taom qo'shish -->
+                <div class="admin-card">
+                    <h3><i class="fas fa-plus-circle"></i> Yangi taom qo'shish</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Taom nomi *</label>
+                            <input type="text" id="itemName" placeholder="Masalan: Osh">
+                        </div>
+                        <div class="form-group">
+                            <label>Emoji</label>
+                            <input type="text" id="itemEmoji" placeholder="🍚">
+                        </div>
+                        <div class="form-group">
+                            <label>Sotilish narxi (so'm) *</label>
+                            <input type="number" id="itemPrice" placeholder="35000">
+                        </div>
+                        <div class="form-group">
+                            <label>Tan narxi (so'm) *</label>
+                            <input type="number" id="itemCost" placeholder="22000">
+                        </div>
+                        <div class="form-group">
+                            <label>Kategoriya *</label>
+                            <select id="itemCategory">
+                                <option value="🍜 Birinchi taomlar">🍜 Birinchi taomlar</option>
+                                <option value="🍽️ Ikkinchi taomlar">🍽️ Ikkinchi taomlar</option>
+                                <option value="🫓 Non va sneklar">🫓 Non va sneklar</option>
+                                <option value="🧃 Ichimliklar">🧃 Ichimliklar</option>
+                                <option value="🍰 Shirinliklar">🍰 Shirinliklar</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tavsif</label>
+                            <textarea id="itemDesc" rows="2" placeholder="Qisqacha tavsif..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Rasm (fayl)</label>
+                            <input type="file" id="itemImageFile" accept="image/*">
+                        </div>
+                        <div class="form-group">
+                            <label>Yoki rasm URL</label>
+                            <input type="text" id="itemImageUrl" placeholder="https://...">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Emoji</label>
-                        <input type="text" id="editItemEmoji">
-                    </div>
-                    <div class="form-group">
-                        <label>Sotilish narxi (so'm)</label>
-                        <input type="number" id="editItemPrice">
-                    </div>
-                    <div class="form-group">
-                        <label>Tan narxi (so'm)</label>
-                        <input type="number" id="editItemCost">
-                    </div>
-                    <div class="form-group">
-                        <label>Kategoriya</label>
-                        <select id="editItemCategory"></select>
-                    </div>
-                    <div class="form-group">
-                        <label>Tavsif</label>
-                        <textarea id="editItemDesc" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Rasm</label>
-                        <input type="file" id="editItemImageFile" accept="image/*">
-                        <input type="text" id="editItemImageUrl" placeholder="https://...">
-                        <img id="editImagePreview" class="image-preview" style="display: none;">
-                    </div>
-                </div>
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn-update-item" onclick="updateSelectedItem()">
-                        <i class="fas fa-save"></i> Saqlash
+                    <button class="btn-primary" onclick="addNewItem()">
+                        <i class="fas fa-save"></i> Taomni qo'shish
                     </button>
-                    <button class="btn-toggle" onclick="cancelEdit()" style="background: #6b7280;">
-                        <i class="fas fa-times"></i> Bekor qilish
+                </div>
+
+                <!-- Tahrirlash -->
+                <div class="edit-item-box" id="editItemCard" style="display: none;">
+                    <h3 style="margin-bottom:16px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-edit" style="color:#f59e0b;"></i> Taomni tahrirlash
+                    </h3>
+                    <div id="selectedItemInfo" style="background:#fef3c7; padding:10px 14px; border-radius:10px; margin-bottom:14px; display:flex; align-items:center; gap:12px;"></div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Taom nomi</label>
+                            <input type="text" id="editItemName">
+                        </div>
+                        <div class="form-group">
+                            <label>Emoji</label>
+                            <input type="text" id="editItemEmoji">
+                        </div>
+                        <div class="form-group">
+                            <label>Sotilish narxi (so'm)</label>
+                            <input type="number" id="editItemPrice">
+                        </div>
+                        <div class="form-group">
+                            <label>Tan narxi (so'm)</label>
+                            <input type="number" id="editItemCost">
+                        </div>
+                        <div class="form-group">
+                            <label>Kategoriya</label>
+                            <select id="editItemCategory">
+                                <option value="🍜 Birinchi taomlar">🍜 Birinchi taomlar</option>
+                                <option value="🍽️ Ikkinchi taomlar">🍽️ Ikkinchi taomlar</option>
+                                <option value="🫓 Non va sneklar">🫓 Non va sneklar</option>
+                                <option value="🧃 Ichimliklar">🧃 Ichimliklar</option>
+                                <option value="🍰 Shirinliklar">🍰 Shirinliklar</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tavsif</label>
+                            <textarea id="editItemDesc" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Rasm (fayl)</label>
+                            <input type="file" id="editItemImageFile" accept="image/*">
+                            <input type="text" id="editItemImageUrl" placeholder="https://..." style="margin-top:6px;">
+                            <img id="editImagePreview" class="image-preview-sm" style="display:none;">
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn-blue" onclick="updateSelectedItem()">
+                            <i class="fas fa-save"></i> Saqlash
+                        </button>
+                        <button class="btn-secondary" onclick="cancelEdit()">
+                            <i class="fas fa-times"></i> Bekor
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Items jadval -->
+                <div class="data-table">
+                    <div class="table-head table-col-7">
+                        <div>ID</div>
+                        <div>Rasm</div>
+                        <div>Taom nomi</div>
+                        <div>Kategoriya</div>
+                        <div>Narx</div>
+                        <div>Holat</div>
+                        <div>Amallar</div>
+                    </div>
+                    <div id="itemsListContainer"></div>
+                </div>
+            </div>
+
+            <!-- ===== KASSA ===== -->
+            <div id="tab-cashier" style="display:none;">
+                <h2 class="page-title"><i class="fas fa-cash-register"></i> Kassa paneli</h2>
+                <p style="color:#64748b; margin-bottom:20px; font-size:14px;">Ofisant tasdiqlagan va mijoz qo'shimcha buyurtma qilgan cheklar ko'rsatiladi. "Hisobni berish" tugmasini bosing.</p>
+                <div class="kassa-grid" id="cashier-orders-container">
+                    <div style="padding:40px; text-align:center; color:#94a3b8; grid-column:1/-1;">
+                        <i class="fas fa-spinner fa-pulse" style="font-size:32px; margin-bottom:12px;"></i><br>Yuklanmoqda...
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== OFISANT QO'SHISH ===== -->
+            <div id="tab-waiters" style="display:none;">
+                <h2 class="page-title"><i class="fas fa-user-plus"></i> Ofisant qo'shish</h2>
+                <div class="admin-card">
+                    <h3><i class="fas fa-user-plus"></i> Yangi ofisant</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Ismi-sharifi *</label>
+                            <input type="text" id="waiterName" placeholder="Masalan: Azizbek">
+                        </div>
+                        <div class="form-group">
+                            <label>ID raqami *</label>
+                            <input type="text" id="waiterId" placeholder="101">
+                        </div>
+                        <div class="form-group">
+                            <label>Login *</label>
+                            <input type="text" id="waiterLogin" placeholder="azizbek1">
+                        </div>
+                        <div class="form-group">
+                            <label>Parol *</label>
+                            <input type="text" id="waiterPass" placeholder="1234">
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="addNewWaiter()">
+                        <i class="fas fa-save"></i> Ofisantni qo'shish
                     </button>
                 </div>
-            </div>
-
-            <!-- Items List -->
-            <div class="items-table">
-                <div class="table-header">
-                    <div>ID</div>
-                    <div>Rasm</div>
-                    <div>Taom nomi</div>
-                    <div>Kategoriya</div>
-                    <div>Narx</div>
-                    <div>Holat</div>
-                    <div>Amallar</div>
-                </div>
-                <div id="itemsListContainer"></div>
-            </div>
-        </div>
-
-        <div id="tab-waiters" style="display: none;">
-            <div class="add-item-card">
-                <h3><i class="fas fa-user-plus"></i> Yangi ofitsiant qo'shish</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Ismi-sharifi *</label>
-                        <input type="text" id="waiterName" placeholder="Masalan: Azizbek">
+                <div class="data-table">
+                    <div class="table-head table-col-5">
+                        <div>ID</div>
+                        <div>Ism</div>
+                        <div>Login</div>
+                        <div>Parol</div>
+                        <div>Amallar</div>
                     </div>
-                    <div class="form-group">
-                        <label>ID raqami *</label>
-                        <input type="text" id="waiterId" placeholder="101">
-                    </div>
-                    <div class="form-group">
-                        <label>Login *</label>
-                        <input type="text" id="waiterLogin" placeholder="azizbek1">
-                    </div>
-                    <div class="form-group">
-                        <label>Parol *</label>
-                        <input type="text" id="waiterPass" placeholder="1234">
-                    </div>
+                    <div id="waitersListContainer"></div>
                 </div>
-                <button class="btn-add-item" onclick="addNewWaiter()">
-                    <i class="fas fa-save"></i> Ofitsiantni qo'shish
-                </button>
             </div>
 
-            <div class="items-table">
-                <div class="table-header" style="grid-template-columns: 80px 1.5fr 1fr 1fr 100px;">
-                    <div>ID</div>
-                    <div>Ism</div>
-                    <div>Login</div>
-                    <div>Parol</div>
-                    <div>Amallar</div>
-                </div>
-                <div id="waitersListContainer"></div>
-            </div>
-        </div>
-
-        <div id="tab-tables" style="display: none;">
-            <div class="add-item-card">
-                <h3><i class="fas fa-plus-circle"></i> Yangi stol qo'shish</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label for="newTableNumber">Stol raqami</label>
-                        <input type="number" id="newTableNumber" placeholder="Masalan: 21">
+            <!-- ===== STOLLAR ===== -->
+            <div id="tab-tables" style="display:none;">
+                <h2 class="page-title"><i class="fas fa-table"></i> Stollar boshqarish</h2>
+                <div class="admin-card">
+                    <h3><i class="fas fa-plus-circle"></i> Yangi stol qo'shish</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Stol raqami</label>
+                            <input type="number" id="newTableNumber" placeholder="Masalan: 21">
+                        </div>
                     </div>
+                    <button class="btn-primary" onclick="addTable()">
+                        <i class="fas fa-plus"></i> Qo'shish
+                    </button>
                 </div>
-                <button class="btn-add-item" onclick="addTable()">Qo'shish</button>
-            </div>
-            
-            <div class="menu-list-card">
-                <h3><i class="fas fa-list"></i> Stollar ro'yxati</h3>
-                <div id="tables-list-container">
-                    <!-- Stollar shu yerga yuklanadi -->
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-cashier" style="display: none;">
-            <div class="menu-list-card">
-                <h3><i class="fas fa-cash-register"></i> Faol stollar (To'lov kutilmoqda)</h3>
-                <div id="cashier-orders-container" class="grid-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
-                    <!-- Faol buyurtmalar shu yerga yuklanadi -->
+                <div class="admin-card">
+                    <h3><i class="fas fa-list"></i> Stollar ro'yxati</h3>
+                    <div id="tables-list-container"></div>
                 </div>
             </div>
-        </div>
-
-        <div id="tab-config" style="display: none;">
-            <!-- System Settings Section -->
-            <div class="add-item-card" style="background: linear-gradient(135deg, #f0fdf4, #dcfce7); border-left: 4px solid #10b981;">
-                <h3><i class="fas fa-cog"></i> Tizim sozlamalari</h3>
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Ofitsiant xizmati (Kishi boshiga, so'm)</label>
-                        <input type="number" id="serviceFeeInput" placeholder="Masalan: 5000">
-                    </div>
-                </div>
-                <button class="btn-add-item" style="background: #10b981;" onclick="saveSystemConfig()">
-                    <i class="fas fa-save"></i> Sozlamalarni saqlash
-                </button>
-            </div>
-        </div>
-
-        <!-- QR Code Section -->
-        <div class="qr-code-section">
-            <h4><i class="fas fa-qrcode"></i> Menyu QR kodi</h4>
-            <p>Mijozlar skaner qilishi uchun:</p>
-            <div id="qrCodeDisplay" style="display: flex; justify-content: center; margin: 16px 0;"></div>
-            <button onclick="downloadQRCode()" class="btn-add-item" style="margin-top: 16px; background: #3b82f6;">
-                <i class="fas fa-download"></i> QR kodni yuklab olish
-            </button>
-        </div>
-    </div>
+        </main>
     </div>
 
     <div class="toast-notification" id="toast"></div>
-    <div class="image-modal-overlay" id="imageModal">
-        <button class="image-modal-close" id="closeImageModal"><i class="fas fa-times"></i></button>
-        <div class="image-modal-container">
-            <img id="fullScreenImage" src="" alt="Taom rasmi">
-            <div class="image-modal-caption" id="imageCaption"></div>
-        </div>
-    </div>
-    <!-- Hisobot Modali -->
-    <div id="statsModal" class="login-overlay" style="display: none; padding: 20px;">
-        <div class="admin-container" style="background: white; border-radius: 20px; max-width: 1000px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 30px; position: relative;">
-            <button onclick="closeStatsModal()" style="position: absolute; top: 20px; right: 20px; border: none; background: none; font-size: 24px; cursor: pointer;">&times;</button>
-            
-            <h2 style="margin-bottom: 24px;"><i class="fas fa-chart-line"></i> Umumiy Foyda Hisoboti</h2>
-            
-            <div id="statsSummary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px;">
-                <!-- Dinamik summary -->
-            </div>
-
-            <div class="items-table">
-                <div class="table-header" style="grid-template-columns: 1fr 80px 80px 80px 80px 80px;">
-                    <div>Nomi</div>
-                    <div>Soni</div>
-                    <div>Mijozlar</div>
-                    <div>Sotuv</div>
-                    <div>Tan narxi</div>
-                    <div>Foyda</div>
-                </div>
-                <div id="statsItemsList"></div>
-            </div>
-
-            <h2 style="margin: 32px 0 16px;"><i class="fas fa-user-tie"></i> Ofisantlar ko'rsatkichlari</h2>
-            <div class="items-table">
-                <div class="table-header" style="grid-template-columns: 1.5fr 1fr 1fr 1.2fr;">
-                    <div>Ofitsiant</div>
-                    <div>Cheklar</div>
-                    <div>Mijozlar</div>
-                    <div>Jami savdo</div>
-                </div>
-                <div id="statsWaitersList"></div>
-            </div>
-        </div>
-    </div>
 
     <script src="config.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs2-fix@0.0.1/qrcode.min.js"></script>
     <script src="admin-menu.js"></script>
 </body>
 </html>
