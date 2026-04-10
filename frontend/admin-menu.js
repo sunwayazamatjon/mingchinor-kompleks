@@ -86,6 +86,7 @@ async function loadMenuData() {
     try {
         const res = await fetch(`${API_URL}/api/menu`);
         menuData = await res.json();
+        populateCategoryChoices();
         renderItemsList();
     } catch (err) {
         showToast('❌ Menyu yuklanmadi. Backend ishlayotganini tekshiring!');
@@ -108,6 +109,39 @@ async function saveMenuToAPI() {
     }
 }
 
+function getMenuCategories() {
+    const cats = [...new Set(menuData.map(item => item.category).filter(Boolean))];
+    const order = ['🍜 Birinchi taomlar', '🍽️ Ikkinchi taomlar', '🫓 Non va sneklar', '🧃 Ichimliklar', '🍰 Shirinliklar'];
+    return cats.sort((a, b) => {
+        const ai = order.indexOf(a);
+        const bi = order.indexOf(b);
+        if (ai !== -1 && bi !== -1) return ai - bi;
+        if (ai !== -1) return -1;
+        if (bi !== -1) return 1;
+        return a.localeCompare(b);
+    });
+}
+
+function populateCategoryChoices() {
+    const categories = getMenuCategories();
+    const categoryFilter = document.getElementById('categoryFilter');
+    const itemCategory = document.getElementById('itemCategory');
+    const editItemCategory = document.getElementById('editItemCategory');
+    const defaultCategories = categories.length ? categories : ['🍜 Birinchi taomlar', '🍽️ Ikkinchi taomlar', '🫓 Non va sneklar', '🧃 Ichimliklar', '🍰 Shirinliklar'];
+
+    if (categoryFilter) {
+        const selected = categoryFilter.value || 'all';
+        categoryFilter.innerHTML = '<option value="all">Barcha kategoriyalar</option>' + defaultCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+        if (defaultCategories.includes(selected) || selected === 'all') categoryFilter.value = selected;
+    }
+    if (itemCategory) {
+        itemCategory.innerHTML = defaultCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    }
+    if (editItemCategory) {
+        editItemCategory.innerHTML = defaultCategories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+    }
+}
+
 function readImageAsBase64(file, callback) {
     const reader = new FileReader();
     reader.onload = e => callback(e.target.result);
@@ -121,7 +155,7 @@ function renderItemsList() {
     const container = document.getElementById('itemsListContainer');
     if (!container) return;
 
-    let filtered = menuData.filter(item =>
+    const filtered = menuData.filter(item =>
         (item.name.toLowerCase().includes(searchTerm) || item.id.toString().includes(searchTerm)) &&
         (categoryFilter === 'all' || item.category === categoryFilter)
     );
@@ -217,6 +251,7 @@ async function updateSelectedItem() {
         return;
     }
     await saveMenuToAPI();
+    populateCategoryChoices();
     renderItemsList();
     cancelEdit();
     showToast(`✅ "${item.name}" tahrirlandi!`);
@@ -238,6 +273,7 @@ async function deleteItem(id) {
         menuData = menuData.filter(i => i.id !== id);
         await saveMenuToAPI();
         renderItemsList();
+        populateCategoryChoices();
         if (selectedEditId === id) cancelEdit();
         showToast(`❌ "${item?.name}" o'chirildi`);
     }
@@ -278,6 +314,7 @@ async function addNewItem() {
 
     menuData.push(newItem);
     await saveMenuToAPI();
+    populateCategoryChoices();
     renderItemsList();
     clearAddForm();
     showToast(`✅ "${name}" qo'shildi!`);

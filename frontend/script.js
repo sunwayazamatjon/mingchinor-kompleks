@@ -21,7 +21,30 @@ const TEXTS = {
         cartEmpty: "Savat hozircha bo'sh",
         missingTable: "Iltimos, avval stol raqamini tanlang!",
         waiterCalled: "📢 Stol {table} ofisant chaqirildi!",
-        missingTableAndLanguage: "Iltimos, avval stol va tilni tanlang!"
+        missingTableAndLanguage: "Iltimos, avval stol va tilni tanlang!",
+        siteTitle: "Mingchinor",
+        siteSubtitle: "Milliy taomlar",
+        cartTitle: "Savatcha",
+        totalLabel: "Jami:",
+        closeButton: "Yopish",
+        qrTitle: "QR kodni skanerlang",
+        waiterPanelTitle: "Ofisant chaqirish",
+        waiterPanelSubtitle: "Ofisant sizning stolingizga keladi",
+        waiterTableLabel: "Stol raqami",
+        waiterPeopleLabel: "Kishilar soni",
+        tablePlaceholder: "Stol raqami",
+        peoplePlaceholder: "Kishilar soni",
+        tableValidation: "Iltimos, stol raqami va kishilar sonini kiriting!",
+        orderWithoutGPSConfirm: "Joylashuvingizni aniqlashga ruxsat bermadingiz yoki qurilmangizda xatolik bor.\nBuyurtma berish uchun GPS yoqilgan bo'lishi shart.\n(Hozircha test rejimida ekanmiz baribir davom etaylikmi?)",
+        farFromCafe: "Siz kafedan juda uzoqdasiz! (Masofa: {distance} metr).\nBuyurtma berish uchun kafega kamida 500 metr yaqinlashing.",
+        orderProcessing: "Buyurtma rasmiylashtirilmoqda...",
+        checkingLocation: "Joylashuv tekshirilmoqda...",
+        orderRequiresItems: "Iltimos, kamida bitta taom tanlang!",
+        orderError: "Buyurtma berishda xatolik yuz berdi",
+        networkError: "Tarmoq xatosi. Iltimos, qayta urinib ko‘ring",
+        cartServiceFee: "Xizmat narxi",
+        serviceFeeDetails: "{count} kishi × {price}",
+        perUnit: "/ dona"
     },
     ru: {
         welcome: "Добро пожаловать в Mingchinor!",
@@ -38,7 +61,30 @@ const TEXTS = {
         cartEmpty: "Корзина пока пуста",
         missingTable: "Пожалуйста, сначала выберите стол!",
         waiterCalled: "📢 Стол {table} вызвал официанта!",
-        missingTableAndLanguage: "Пожалуйста, сначала выберите стол и язык!"
+        missingTableAndLanguage: "Пожалуйста, сначала выберите стол и язык!",
+        siteTitle: "Mingchinor",
+        siteSubtitle: "Национальная кухня",
+        cartTitle: "Корзина",
+        totalLabel: "Итого:",
+        closeButton: "Закрыть",
+        qrTitle: "Сканируйте QR-код",
+        waiterPanelTitle: "Вызов официанта",
+        waiterPanelSubtitle: "Официант скоро подойдет к вашему столу",
+        waiterTableLabel: "Номер стола",
+        waiterPeopleLabel: "Количество гостей",
+        tablePlaceholder: "Номер стола",
+        peoplePlaceholder: "Количество гостей",
+        tableValidation: "Пожалуйста, введите номер стола и количество гостей!",
+        orderWithoutGPSConfirm: "Вы не разрешили определить местоположение или в вашем устройстве ошибка.\nДля оформления заказа GPS должен быть включен.\n(Хотите продолжить в тестовом режиме?)",
+        farFromCafe: "Вы слишком далеко от кафе! (Расстояние: {distance} м).\nПожалуйста, подойдите ближе, чтобы оформить заказ.",
+        orderProcessing: "Оформление заказа...",
+        checkingLocation: "Проверка местоположения...",
+        orderRequiresItems: "Пожалуйста, выберите хотя бы одно блюдо!",
+        orderError: "Ошибка при оформлении заказа",
+        networkError: "Сетевая ошибка. Пожалуйста, попробуйте снова",
+        cartServiceFee: "Стоимость сервиса",
+        serviceFeeDetails: "{count} гостей × {price}",
+        perUnit: "/ шт"
     },
     en: {
         welcome: "Welcome to Mingchinor!",
@@ -55,7 +101,30 @@ const TEXTS = {
         cartEmpty: "The cart is empty",
         missingTable: "Please select your table first!",
         waiterCalled: "📢 Table {table} requested a waiter!",
-        missingTableAndLanguage: "Please select your table and language first!"
+        missingTableAndLanguage: "Please select your table and language first!",
+        siteTitle: "Mingchinor",
+        siteSubtitle: "National cuisine",
+        cartTitle: "Cart",
+        totalLabel: "Total:",
+        closeButton: "Close",
+        qrTitle: "Scan QR code",
+        waiterPanelTitle: "Call Waiter",
+        waiterPanelSubtitle: "A waiter will be with your table shortly",
+        waiterTableLabel: "Table number",
+        waiterPeopleLabel: "Guest count",
+        tablePlaceholder: "Table number",
+        peoplePlaceholder: "Guest count",
+        tableValidation: "Please enter your table number and guest count!",
+        orderWithoutGPSConfirm: "You did not allow location access or there is an error on your device.\nGPS must be enabled to place an order.\n(Do you want to continue in test mode?)",
+        farFromCafe: "You are too far from the cafe! (Distance: {distance} m).\nPlease move closer to place your order.",
+        orderProcessing: "Processing order...",
+        checkingLocation: "Checking location...",
+        orderRequiresItems: "Please select at least one dish!",
+        orderError: "An error occurred while placing the order",
+        networkError: "Network error. Please try again",
+        cartServiceFee: "Service fee",
+        serviceFeeDetails: "{count} people × {price}",
+        perUnit: "/ pcs"
     }
 };
 
@@ -89,6 +158,7 @@ const callWaiterBtn = document.getElementById('callWaiterBtn');
 const imageModal = document.getElementById('imageModal');
 const fullScreenImage = document.getElementById('fullScreenImage');
 const imageCaption = document.getElementById('imageCaption');
+const imagePlaceholder = document.getElementById('imagePlaceholder');
 const closeImageModal = document.getElementById('closeImageModal');
 const languageSelectorOverlay = document.getElementById('languageSelectorOverlay');
 const languageBtns = document.querySelectorAll('.language-btn');
@@ -141,9 +211,23 @@ function translateUI() {
     const peopleLabel = document.getElementById('peopleLabel');
     const confirmTableText = document.getElementById('confirmTableText');
     const callWaiterText = document.getElementById('callWaiterText');
+    const emptyCartText = document.getElementById('emptyCartText');
     const loadingText = document.getElementById('loadingText');
     const successTitle = document.getElementById('successTitle');
     const successText = document.getElementById('successText');
+    const headerLogoTitle = document.getElementById('headerLogoTitle');
+    const headerLogoSubtitle = document.getElementById('headerLogoSubtitle');
+    const categoryAllBtn = document.querySelector('.category-chip[data-category="all"]');
+    const cartTitle = document.getElementById('cartTitle');
+    const cartTotalLabel = document.getElementById('cartTotalLabel');
+    const qrTitle = document.getElementById('qrTitle');
+    const closeSuccessBtn = document.getElementById('closeSuccessBtn');
+    const waiterPanelTitle = document.getElementById('waiterPanelTitle');
+    const waiterPanelSubtitle = document.getElementById('waiterPanelSubtitle');
+    const waiterTableLabel = document.getElementById('waiterTableLabel');
+    const waiterPeopleLabel = document.getElementById('waiterPeopleLabel');
+    const tableNumberInput = document.getElementById('tableNumberInput');
+    const peopleCountInput = document.getElementById('peopleCountInput');
 
     if (languageTitle) languageTitle.textContent = t('welcome');
     if (languageDescription) languageDescription.textContent = t('selectLanguage');
@@ -153,9 +237,22 @@ function translateUI() {
     if (confirmTableText) confirmTableText.textContent = t('confirm');
     if (callWaiterText) callWaiterText.textContent = t('callWaiter');
     if (loadingText) loadingText.innerHTML = `<i class="fas fa-spinner fa-pulse"></i> ${t('menuLoading')}`;
+    if (emptyCartText) emptyCartText.textContent = t('cartEmpty');
     if (successTitle) successTitle.textContent = t('orderSuccessTitle');
     if (successText) successText.textContent = t('orderSuccessText');
-
+    if (headerLogoTitle) headerLogoTitle.textContent = t('siteTitle');
+    if (headerLogoSubtitle) headerLogoSubtitle.textContent = t('siteSubtitle');
+    if (categoryAllBtn) categoryAllBtn.innerHTML = `<i class="fas fa-border-all"></i> ${t('allCategories')}`;
+    if (cartTitle) cartTitle.textContent = t('cartTitle');
+    if (cartTotalLabel) cartTotalLabel.textContent = t('totalLabel');
+    if (qrTitle) qrTitle.textContent = t('qrTitle');
+    if (closeSuccessBtn) closeSuccessBtn.textContent = t('closeButton');
+    if (waiterPanelTitle) waiterPanelTitle.textContent = t('waiterPanelTitle');
+    if (waiterPanelSubtitle) waiterPanelSubtitle.textContent = t('waiterPanelSubtitle');
+    if (waiterTableLabel) waiterTableLabel.textContent = t('waiterTableLabel');
+    if (waiterPeopleLabel) waiterPeopleLabel.textContent = t('waiterPeopleLabel');
+    if (tableNumberInput) tableNumberInput.placeholder = t('tablePlaceholder');
+    if (peopleCountInput) peopleCountInput.placeholder = t('peoplePlaceholder');
     if (cartBadge) cartBadge.textContent = cartBadge.textContent || '0';
     if (orderBtn) orderBtn.innerHTML = `<i class="fas fa-check-circle"></i> ${t('orderButton')}`;
 }
@@ -222,7 +319,7 @@ document.getElementById('confirmTableBtn')?.addEventListener('click', () => {
         document.getElementById('tableSelectorOverlay').style.display = 'none';
         loadMenuFromAPI();
     } else {
-        alert('Iltimos, stol raqami va kishilar sonini kiriting!');
+        alert(t('tableValidation'));
     }
 });
 
@@ -427,7 +524,7 @@ function updateCartUI() {
         cartItemsList.innerHTML = `
             <div class="empty-cart">
                 <i class="fas fa-shopping-cart"></i>
-                <p>Savat hozircha bo'sh</p>
+                <p>${t('cartEmpty')}</p>
             </div>
         `;
     } else {
@@ -439,7 +536,7 @@ function updateCartUI() {
                         <span>${formatPrice(e.qty * e.item.price)}</span>
                     </div>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
-                         <small style="color: var(--text-secondary);">${formatPrice(e.item.price)} / dona</small>
+                         <small style="color: var(--text-secondary);">${formatPrice(e.item.price)} ${t('perUnit')}</small>
                          <div class="counter-wrap" style="transform: scale(0.9); margin-right: -8px; box-shadow: none; border: 1px solid var(--border-color);">
                              <button class="counter-btn minus" style="box-shadow: none; background: #ffeaa7; color: #d63031;" onclick="updateQuantity(${e.item.id}, -1)">−</button>
                              <span class="count-num">${e.qty}</span>
@@ -449,11 +546,11 @@ function updateCartUI() {
                 </div>
             `).join('')}
             <div class="cart-item" style="border-top: 2px solid var(--border-color); margin-top: 8px; padding-top: 12px;">
-                <div><i class="fas fa-users"></i> Xizmat narxi (${numberOfPeople} kishi × ${formatPrice(SERVICE_FEE_PER_PERSON)})</div>
+                <div><i class="fas fa-users"></i> ${t('cartServiceFee')} (${t('serviceFeeDetails').replace('{count}', numberOfPeople).replace('{price}', formatPrice(SERVICE_FEE_PER_PERSON))})</div>
                 <div>${formatPrice(serviceFee)}</div>
             </div>
             <div class="cart-item" style="font-weight: bold; font-size: 1.1rem;">
-                <div>Jami:</div>
+                <div>${t('totalLabel')}</div>
                 <div style="color: var(--primary-color);">${formatPrice(total)}</div>
             </div>
         `;
@@ -466,7 +563,7 @@ function updateCartUI() {
 // ============ 6. BUYURTMA BERISH ============
 async function placeOrder() {
     if (!currentTableNumber) {
-        alert('Iltimos, avval stol raqamini tanlang!');
+        alert(t('missingTable'));
         return;
     }
     
@@ -477,7 +574,7 @@ async function placeOrder() {
     const MAX_DISTANCE_METERS = 500;
 
     orderBtn.disabled = true;
-    orderBtn.innerHTML = 'Joylashuv tekshirilmoqda...';
+    orderBtn.innerHTML = t('checkingLocation');
 
     try {
         if (!navigator.geolocation) throw new Error("Brauzeringiz GPS ni qo'llab quvvatlamaydi");
@@ -504,23 +601,23 @@ async function placeOrder() {
         const distance = R * c; // Metrda
 
         if (distance > MAX_DISTANCE_METERS) {
-            alert(`Siz kafedan juda uzoqdasiz! (Masofa: ${Math.round(distance)} metr).\nBuyurtma berish uchun kafega kamida 500 metr yaqinlashing.`);
+            alert(t('farFromCafe').replace('{distance}', Math.round(distance)));
             orderBtn.disabled = false;
-            orderBtn.innerHTML = 'Buyurtma berish';
+            orderBtn.innerHTML = `<i class="fas fa-check-circle"></i> ${t('orderButton')}`;
             return;
         }
     } catch (err) {
         console.warn("Geolocation error:", err);
         // GPS bloklangan yoli HTTPS emas bo'lsa
-        const allowWithoutGPS = confirm("Joylashuvingizni aniqlashga ruxsat bermadingiz yoki qurilmangizda xatolik bor.\nBuyurtma berish uchun GPS yoqilgan bo'lishi shart.\n(Hozircha test rejimida ekanmiz baribir davom etaylikmi?)");
+        const allowWithoutGPS = confirm(t('orderWithoutGPSConfirm'));
         if (!allowWithoutGPS) {
             orderBtn.disabled = false;
-            orderBtn.innerHTML = 'Buyurtma berish';
+            orderBtn.innerHTML = `<i class="fas fa-check-circle"></i> ${t('orderButton')}`;
             return;
         }
     }
     
-    orderBtn.innerHTML = 'Buyurtma rasmiylashtirilmoqda...';
+    orderBtn.innerHTML = t('orderProcessing');
     // ------------------------------------
 
     const items = Object.values(cart).map(c => ({
@@ -534,9 +631,9 @@ async function placeOrder() {
     }));
     
     if (items.length === 0) {
-        alert('Iltimos, kamida bitta taom tanlang!');
+        alert(t('orderRequiresItems'));
         orderBtn.disabled = false;
-        orderBtn.innerHTML = 'Buyurtma berish';
+        orderBtn.innerHTML = `<i class="fas fa-check-circle"></i> ${t('orderButton')}`;
         return;
     }
     
@@ -570,15 +667,15 @@ async function placeOrder() {
             menuData.forEach(item => renderControl(item));
             cartOverlay.classList.remove('open');
         } else {
-            alert('Buyurtma berishda xatolik yuz berdi');
+            alert(t('orderError'));
         }
     } catch (err) {
         console.error('Order error:', err);
-        alert('Tarmoq xatosi. Iltimos, qayta urinib ko‘ring');
+        alert(t('networkError'));
     }
     
     orderBtn.disabled = false;
-    orderBtn.innerHTML = 'Buyurtma berish';
+    orderBtn.innerHTML = `<i class="fas fa-check-circle"></i> ${t('orderButton')}`;
 }
 
 // ============ 7. YORDAMCHI FUNKSIYALAR ============
@@ -599,14 +696,30 @@ function closeModal() {
 }
 
 function openImageModal(img, name, emoji) {
-    if (!img) return;
-    fullScreenImage.src = img;
     imageCaption.textContent = `${emoji} ${name}`;
+
+    if (img) {
+        fullScreenImage.style.display = 'block';
+        imagePlaceholder.style.display = 'none';
+        fullScreenImage.src = img;
+        fullScreenImage.onerror = () => {
+            fullScreenImage.style.display = 'none';
+            imagePlaceholder.textContent = emoji || '🍽️';
+            imagePlaceholder.style.display = 'flex';
+        };
+    } else {
+        fullScreenImage.style.display = 'none';
+        imagePlaceholder.textContent = emoji || '🍽️';
+        imagePlaceholder.style.display = 'flex';
+    }
+
     imageModal.classList.add('open');
 }
 
 function closeImageModalHandler() {
     imageModal.classList.remove('open');
+    fullScreenImage.src = '';
+    imagePlaceholder.style.display = 'none';
 }
 
 // ============ 8. OFISANT CHAQIRISH (WebSocket) ============
@@ -710,6 +823,11 @@ if (imageModal) imageModal.addEventListener('click', (e) => {
 });
 // Bell tugmasi endi bevosita ofisant chaqiradi
 if (callWaiterBtn) callWaiterBtn.addEventListener('click', callWaiter);
+if (document) {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeImageModalHandler();
+    });
+}
 
 function openWaiterPanel() {
     const panel = document.getElementById('waiterPanel');

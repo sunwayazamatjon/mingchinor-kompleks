@@ -410,8 +410,8 @@
                         <i class="fas fa-utensils"></i>
                     </div>
                     <div class="logo-text">
-                        <h1>Mingchinor</h1>
-                        <p>Milliy taomlar</p>
+                        <h1 id="headerLogoTitle">Mingchinor</h1>
+                        <p id="headerLogoSubtitle">Milliy taomlar</p>
                     </div>
                 </div>
                 <div class="header-buttons">
@@ -447,7 +447,7 @@
         <div class="cart-overlay" id="cartOverlay">
             <div class="cart-sidebar">
                 <div class="cart-header">
-                    <h3><i class="fas fa-shopping-basket"></i> Savatcha</h3>
+                    <h3 id="cartTitle"><i class="fas fa-shopping-basket"></i> Savatcha</h3>
                     <button class="close-cart" id="closeCartBtn">
                         <i class="fas fa-times"></i>
                     </button>
@@ -455,12 +455,12 @@
                 <div class="cart-items" id="cartItemsList">
                     <div class="empty-cart">
                         <i class="fas fa-shopping-cart"></i>
-                        <p>Savat hozircha bo'sh</p>
+                        <p id="emptyCartText">Savat hozircha bo'sh</p>
                     </div>
                 </div>
                 <div class="cart-footer">
                     <div class="cart-total">
-                        <span>Jami:</span>
+                        <span id="cartTotalLabel">Jami:</span>
                         <strong id="cartTotalAmount">0 so'm</strong>
                     </div>
                     <button class="btn-order" id="orderBtn">
@@ -474,7 +474,7 @@
         <div class="modal-overlay" id="qrModal">
             <div class="modal-container">
                 <div class="modal-header">
-                    <h3><i class="fas fa-qrcode"></i> QR kodni skanerlang</h3>
+                    <h3 id="qrTitle"><i class="fas fa-qrcode"></i> QR kodni skanerlang</h3>
                     <button class="close-modal" id="closeQrModal">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -506,15 +506,15 @@
         <div class="waiter-panel" id="waiterPanel">
             <button class="waiter-panel-close" onclick="closeWaiterPanel()"><i class="fas fa-times"></i></button>
             <div class="waiter-panel-handle"></div>
-            <div class="waiter-panel-title"><i class="fas fa-concierge-bell" style="color:#f59e0b;"></i> Ofisant chaqirish</div>
-            <div class="waiter-panel-subtitle">Ofisant sizning stolingizga keladi</div>
+            <div class="waiter-panel-title" id="waiterPanelTitle"><i class="fas fa-concierge-bell" style="color:#f59e0b;"></i> Ofisant chaqirish</div>
+            <div class="waiter-panel-subtitle" id="waiterPanelSubtitle">Ofisant sizning stolingizga keladi</div>
             <div class="waiter-panel-info">
                 <div class="waiter-info-item">
-                    <div class="waiter-info-label">Stol raqami</div>
+                    <div class="waiter-info-label" id="waiterTableLabel">Stol raqami</div>
                     <div class="waiter-info-value" id="wpTableNum">—</div>
                 </div>
                 <div class="waiter-info-item">
-                    <div class="waiter-info-label">Kishilar soni</div>
+                    <div class="waiter-info-label" id="waiterPeopleLabel">Kishilar soni</div>
                     <div class="waiter-info-value" id="wpPeople">—</div>
                 </div>
             </div>
@@ -527,7 +527,10 @@
         <div class="image-modal-overlay" id="imageModal">
             <button class="image-modal-close" id="closeImageModal"><i class="fas fa-times"></i></button>
             <div class="image-modal-container">
-                <img id="fullScreenImage" src="" alt="Taom rasmi">
+                <div class="image-modal-content">
+                    <img id="fullScreenImage" src="" alt="Taom rasmi">
+                    <div class="image-modal-placeholder" id="imagePlaceholder"></div>
+                </div>
                 <div class="image-modal-caption" id="imageCaption"></div>
             </div>
         </div>
