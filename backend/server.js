@@ -13,7 +13,8 @@ const printerService = require('./printer');
 const { printCashierReceipt } = printerService;
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT) || 3001;
+const MONGODB_URI = process.env.MONGODB_URI;
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 
@@ -21,11 +22,12 @@ const io = socketIo(server, { cors: { origin: "*", methods: ["GET", "POST"] } })
 app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// ==================== MONGODB ULANISH ====================
+let mongoServer;
+
 // Connect to database
 connectDatabase();
-// ==================== MONGODB ULANISH ====================
-const MONGODB_URI = process.env.MONGODB_URI;
-let mongoServer;
 
 async function connectDatabase() {
     try {
@@ -710,8 +712,23 @@ io.on('connection', (socket) => {
 });
 
 // Serverni ishga tushirish
-server.listen(PORT, () => {
-    console.log(`🚀 Server bulutli bazada (MongoDB) ishga tushdi. Port: ${PORT}`);
+const startServer = (port) => {
+    server.listen(port, () => {
+        console.log(`🚀 Server ishga tushdi. Port: ${port}`);
+    });
+};
+
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        const nextPort = PORT + 1;
+        console.warn(`⚠️ Port ${PORT} band, ${nextPort} bo'yicha qayta ishga tushirilyapti...`);
+        startServer(nextPort);
+    } else {
+        console.error('Server error:', err);
+        process.exit(1);
+    }
 });
+
+startServer(PORT);
 
 module.exports = app;
