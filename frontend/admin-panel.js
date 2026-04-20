@@ -209,6 +209,12 @@ async function openAddItemsModal(orderId, tableNum) {
         try {
             const res = await fetch(`${API_URL}/api/menu`);
             menuItemsForModal = await res.json();
+            
+            const filter = document.getElementById('addItemsCatFilter');
+            if (filter) {
+                const cats = [...new Set(menuItemsForModal.map(i => i.category))].filter(Boolean);
+                filter.innerHTML = '<option value="all">Barcha</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+            }
         } catch (err) {
             showToast('❌ Menyu yuklanmadi');
             return;

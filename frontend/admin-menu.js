@@ -114,8 +114,37 @@ function readImageAsBase64(file, callback) {
     reader.readAsDataURL(file);
 }
 
+// ===== DYNAMIC CATEGORIES =====
+function updateCategoryOptions() {
+    const categories = [...new Set(menuData.map(item => item.category))].filter(Boolean);
+    
+    // Update datalist
+    let dataList = document.getElementById('categoryList');
+    if (!dataList) {
+        dataList = document.createElement('datalist');
+        dataList.id = 'categoryList';
+        document.body.appendChild(dataList);
+    }
+    dataList.innerHTML = categories.map(cat => `<option value="${cat}"></option>`).join('');
+
+    // Update filter
+    const filter = document.getElementById('categoryFilter');
+    if (filter) {
+        const currentVal = filter.value;
+        filter.innerHTML = '<option value="all">Barcha kategoriyalar</option>' + 
+            categories.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+        
+        if (currentVal === 'all' || categories.includes(currentVal)) {
+            filter.value = currentVal;
+        } else {
+            filter.value = 'all';
+        }
+    }
+}
+
 // ===== MENU RENDER =====
 function renderItemsList() {
+    updateCategoryOptions();
     const searchTerm = document.getElementById('searchItemInput')?.value.toLowerCase() || '';
     const categoryFilter = document.getElementById('categoryFilter')?.value || 'all';
     const container = document.getElementById('itemsListContainer');

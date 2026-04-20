@@ -22,6 +22,9 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Serve static files from frontend directory
+app.use(express.static(path.join(__dirname, '../frontend')));
+
 // ==================== MONGODB ULANISH ====================
 const MONGODB_URI = process.env.MONGODB_URI;
 
@@ -688,6 +691,9 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+// Frontend fayllarini servir qilish
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Serverni ishga tushirish
 server.listen(PORT, () => {

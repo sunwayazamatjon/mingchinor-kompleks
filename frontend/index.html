@@ -110,15 +110,19 @@
         .call-waiter-btn {
             background: linear-gradient(135deg, #f59e0b, #d97706);
             border: none;
-            width: 44px;
             height: 44px;
-            border-radius: 50%;
+            padding: 0 16px;
+            border-radius: 22px;
             color: white;
-            font-size: 20px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
             margin-right: 8px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .call-waiter-btn:hover {
@@ -135,6 +139,23 @@
             display: flex;
             gap: 8px;
             align-items: center;
+        }
+
+        .lang-btn {
+            background: #f1f5f9;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            background: #c0522a;
+            color: white;
+            border-color: #c0522a;
         }
 
         @keyframes fadeInUp {
@@ -289,20 +310,25 @@
         <!-- Stol tanlash overlay (boshida ko'rinadi) -->
         <div class="table-selector-overlay" id="tableSelectorOverlay">
             <div class="table-selector-card">
+                <div class="lang-selector" style="display:flex; justify-content:center; gap:8px; margin-bottom:16px;">
+                    <button class="lang-btn active" data-lang="uz">UZ</button>
+                    <button class="lang-btn" data-lang="ru">RU</button>
+                    <button class="lang-btn" data-lang="en">EN</button>
+                </div>
                 <div class="table-selector-icon">
                     <i class="fas fa-chair"></i>
                 </div>
-                <h2>Mingchinor ga xush kelibsiz!</h2>
-                <p>Iltimos, stolingiz raqamini va kishilar sonini kiriting</p>
+                <h2 data-i18n="welcome">Mingchinor ga xush kelibsiz!</h2>
+                <p data-i18n="enterTableInfo">Iltimos, stolingiz raqamini va kishilar sonini kiriting</p>
                 <div class="table-number-input">
-                    <input type="number" id="tableNumberInput" placeholder="Stol raqami" min="1" max="50" autofocus>
+                    <input type="number" id="tableNumberInput" placeholder="Stol raqami" min="1" max="50" autofocus data-i18n-placeholder="tableNum">
                 </div>
                 <div class="people-number-input">
-                    <label><i class="fas fa-users"></i> Necha kishi?</label>
-                    <input type="number" id="peopleCountInput" placeholder="Kishilar soni" min="1" max="20" value="1">
+                    <label><i class="fas fa-users"></i> <span data-i18n="howManyPeople">Necha kishi?</span></label>
+                    <input type="number" id="peopleCountInput" placeholder="Kishilar soni" min="1" max="20" value="1" data-i18n-placeholder="peopleCount">
                 </div>
                 <button class="btn-confirm-table" id="confirmTableBtn">
-                    <i class="fas fa-check"></i> Tasdiqlash
+                    <i class="fas fa-check"></i> <span data-i18n="confirm">Tasdiqlash</span>
                 </button>
             </div>
         </div>
@@ -315,13 +341,15 @@
                         <i class="fas fa-utensils"></i>
                     </div>
                     <div class="logo-text">
-                        <h1>Mingchinor</h1>
-                        <p>Milliy taomlar</p>
+                        <h1 data-i18n="appTitle">Mingchinor</h1>
+                        <p data-i18n="appSubtitle">Milliy taomlar</p>
                     </div>
                 </div>
                 <div class="header-buttons">
+                    <div class="table-badge" id="headerTableBadge" onclick="resetTable()" style="display:none; background:white; padding:0 14px; height: 44px; align-items:center; border-radius:22px; font-weight:700; color:#c0522a; font-size:14px; cursor:pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); border: 1.5px solid #fde68a; transition: all 0.2s;" title="Stolni o'zgartirish">
+                    </div>
                     <button class="call-waiter-btn" id="callWaiterBtn">
-                        <i class="fas fa-bell"></i>
+                        <i class="fas fa-bell"></i> <span data-i18n="callWaiter">Ofisant chaqirish</span>
                     </button>
                     <button class="cart-icon-btn" id="cartIconBtn">
                         <i class="fas fa-shopping-basket"></i>
@@ -335,7 +363,7 @@
         <div class="categories-wrapper">
             <div class="categories-container" id="categoriesContainer">
                 <button class="category-chip active" data-category="all">
-                    <i class="fas fa-border-all"></i> Barchasi
+                    <i class="fas fa-border-all"></i> <span data-i18n="all">Barchasi</span>
                 </button>
             </div>
         </div>
@@ -343,7 +371,7 @@
         <!-- Menu Items -->
         <main class="menu-container" id="menuContainer">
             <div class="loading-spinner">
-                <i class="fas fa-spinner fa-pulse"></i> Menyu yuklanmoqda...
+                <i class="fas fa-spinner fa-pulse"></i> <span data-i18n="menuLoading">Menyu yuklanmoqda...</span>
             </div>
         </main>
 
@@ -351,7 +379,7 @@
         <div class="cart-overlay" id="cartOverlay">
             <div class="cart-sidebar">
                 <div class="cart-header">
-                    <h3><i class="fas fa-shopping-basket"></i> Savatcha</h3>
+                    <h3><i class="fas fa-shopping-basket"></i> <span data-i18n="cartTitle">Savatcha</span></h3>
                     <button class="close-cart" id="closeCartBtn">
                         <i class="fas fa-times"></i>
                     </button>
@@ -359,16 +387,16 @@
                 <div class="cart-items" id="cartItemsList">
                     <div class="empty-cart">
                         <i class="fas fa-shopping-cart"></i>
-                        <p>Savat hozircha bo'sh</p>
+                        <p data-i18n="cartEmpty">Savat hozircha bo'sh</p>
                     </div>
                 </div>
                 <div class="cart-footer">
                     <div class="cart-total">
-                        <span>Jami:</span>
+                        <span data-i18n="total">Jami:</span>
                         <strong id="cartTotalAmount">0 so'm</strong>
                     </div>
                     <button class="btn-order" id="orderBtn">
-                        <i class="fas fa-check-circle"></i> Buyurtma berish
+                        <i class="fas fa-check-circle"></i> <span data-i18n="placeOrderBtn">Buyurtma berish</span>
                     </button>
                 </div>
             </div>
@@ -378,7 +406,7 @@
         <div class="modal-overlay" id="qrModal">
             <div class="modal-container">
                 <div class="modal-header">
-                    <h3><i class="fas fa-qrcode"></i> QR kodni skanerlang</h3>
+                    <h3><i class="fas fa-qrcode"></i> <span data-i18n="qrScanTitle">QR kodni skanerlang</span></h3>
                     <button class="close-modal" id="closeQrModal">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -393,9 +421,9 @@
             <div class="modal-container success-modal">
                 <div class="modal-body text-center">
                     <i class="fas fa-check-circle success-icon"></i>
-                    <h3>Buyurtma qabul qilindi!</h3>
-                    <p>Tez orada ofitsiant siz bilan bog'lanadi. Rahmat!</p>
-                    <button class="btn-primary" id="closeSuccessBtn">Yopish</button>
+                    <h3 data-i18n="orderSuccessTitle">Buyurtma qabul qilindi!</h3>
+                    <p data-i18n="orderSuccessMsg">Tez orada ofitsiant siz bilan bog'lanadi. Rahmat!</p>
+                    <button class="btn-primary" id="closeSuccessBtn" data-i18n="closeBtn">Yopish</button>
                 </div>
             </div>
         </div>
@@ -410,20 +438,20 @@
         <div class="waiter-panel" id="waiterPanel">
             <button class="waiter-panel-close" onclick="closeWaiterPanel()"><i class="fas fa-times"></i></button>
             <div class="waiter-panel-handle"></div>
-            <div class="waiter-panel-title"><i class="fas fa-concierge-bell" style="color:#f59e0b;"></i> Ofisant chaqirish</div>
-            <div class="waiter-panel-subtitle">Ofisant sizning stolingizga keladi</div>
+            <div class="waiter-panel-title"><i class="fas fa-concierge-bell" style="color:#f59e0b;"></i> <span data-i18n="waiterPanelTitle">Ofisant chaqirish</span></div>
+            <div class="waiter-panel-subtitle" data-i18n="waiterPanelSubtitle">Ofisant sizning stolingizga keladi</div>
             <div class="waiter-panel-info">
                 <div class="waiter-info-item">
-                    <div class="waiter-info-label">Stol raqami</div>
+                    <div class="waiter-info-label" data-i18n="tableNumLabel">Stol raqami</div>
                     <div class="waiter-info-value" id="wpTableNum">—</div>
                 </div>
                 <div class="waiter-info-item">
-                    <div class="waiter-info-label">Kishilar soni</div>
+                    <div class="waiter-info-label" data-i18n="peopleLabel">Kishilar soni</div>
                     <div class="waiter-info-value" id="wpPeople">—</div>
                 </div>
             </div>
             <button class="btn-call-waiter-big" id="bigCallWaiterBtn" onclick="callWaiter(); closeWaiterPanel();">
-                <i class="fas fa-bell"></i> Ofisantni chaqirish
+                <i class="fas fa-bell"></i> <span data-i18n="callWaiterBtnModal">Ofisantni chaqirish</span>
             </button>
         </div>
 
