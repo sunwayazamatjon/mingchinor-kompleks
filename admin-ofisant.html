@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ofisant Panel – Mingchinor Kompleks</title>
+<link rel="stylesheet" href="admin-ofisant.css?v=2">
+</head>
+<body>
+
+<!-- ===== LOGIN SCREEN ===== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <img src="logo.jpg" alt="Logo" style="width:100px;height:100px;border-radius:50%;margin-bottom:12px;border:2px solid var(--accent);padding:4px;background:var(--bg-card2);">
+      <h1>Mingchinor</h1>
+      <p>Ofisant Paneli</p>
+    </div>
+    <div id="loginError" class="login-error" style="display:none"></div>
+    <div class="field-group">
+      <label>Login</label>
+      <input type="text" id="loginInput" placeholder="login" autocomplete="username">
+    </div>
+    <div class="field-group">
+      <label>Parol</label>
+      <input type="password" id="passInput" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Kirish</button>
+  </div>
+</div>
+
+<!-- ===== MAIN PANEL ===== -->
+<div id="mainPanel" class="main-panel" style="display:none">
+
+  <!-- TOP BAR -->
+  <header class="panel-header">
+    <div class="panel-brand">
+      <img src="logo.jpg" alt="Logo" style="height:32px;width:32px;border-radius:50%;border:1px solid var(--accent);margin-right:8px;vertical-align:middle;">
+      <span>Mingchinor – Ofisant Paneli</span>
+    </div>
+    <div class="panel-waiter-info">
+      <span id="waiterName"></span>
+      <button class="btn-logout" onclick="doLogout()">Chiqish</button>
+    </div>
+  </header>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="calls" onclick="switchTab('calls')">
+      <span class="tab-icon">🔔</span>
+      <span>Chaqiruv</span>
+      <span id="callsBadge" class="tab-badge" style="display:none">0</span>
+    </button>
+    <button class="tab-btn" data-tab="orders" onclick="switchTab('orders')">
+      <span class="tab-icon">📋</span>
+      <span>Buyurtmalar</span>
+      <span id="ordersBadge" class="tab-badge" style="display:none">0</span>
+    </button>
+    <button class="tab-btn" data-tab="checks" onclick="switchTab('checks')">
+      <span class="tab-icon">🧾</span>
+      <span>Cheklar</span>
+    </button>
+    <button class="tab-btn" data-tab="zakaz" onclick="switchTab('zakaz')">
+      <span class="tab-icon">📝</span>
+      <span>Zakaz</span>
+    </button>
+  </div>
+
+  <!-- TAB: CALLS (Chaqiruv) -->
+  <div id="tabCalls" class="tab-content active">
+    <div class="section-header">
+      <h2>Chaqirilgan Stollar</h2>
+      <button class="btn-refresh" onclick="loadCalls()">↻ Yangilash</button>
+    </div>
+    <div id="callsList" class="cards-list"></div>
+  </div>
+
+  <!-- TAB: ORDERS (Buyurtmalar) -->
+  <div id="tabOrders" class="tab-content">
+    <div class="section-header">
+      <h2>Buyurtmalar</h2>
+      <button class="btn-refresh" onclick="loadOrders()">↻ Yangilash</button>
+    </div>
+    <div id="ordersList" class="cards-list"></div>
+
+    <!-- Add-item panel (for table orders) -->
+    <div id="addItemPanel" class="add-item-panel" style="display:none">
+      <div class="add-item-head">
+        <h3 id="addItemTitle">Buyurtmaga qo'shish</h3>
+        <button class="close-btn" onclick="closeAddItemPanel()">✕</button>
+      </div>
+      <div class="add-item-cats" id="addItemCats"></div>
+      <div class="add-item-grid" id="addItemGrid"></div>
+      <div class="add-item-footer">
+        <button class="btn-back" onclick="closeAddItemPanel()">⬅ Ortga qaytish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: CHECKS (Cheklar) -->
+  <div id="tabChecks" class="tab-content">
+    <div class="section-header">
+      <h2>Cheklar</h2>
+    </div>
+    <div id="checksList" class="checks-list"></div>
+    <div class="checks-footer" id="checksFooter"></div>
+  </div>
+
+  <!-- TAB: ZAKAZ (Yangi buyurtma — telefonsiz mijozlar uchun) -->
+  <div id="tabZakaz" class="tab-content zakaz-tab">
+    <div class="section-header">
+      <h2>📝 Yangi Zakaz</h2>
+    </div>
+
+    <!-- Stol va mehmon tanlash -->
+    <div class="zakaz-top-bar">
+      <div class="zakaz-field">
+        <label>🪑 Stol</label>
+        <select id="zakazTableSelect" onchange="onZakazTableChange()">
+          <option value="">– Tanlang –</option>
+        </select>
+      </div>
+      <div class="zakaz-field">
+        <label>👥 Mehmon</label>
+        <div class="zakaz-counter">
+          <button class="zc-btn" onclick="changeZakazGuests(-1)">−</button>
+          <input type="number" id="zakazGuestInput" value="1" min="1" max="20" readonly>
+          <button class="zc-btn" onclick="changeZakazGuests(1)">+</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kategoriya filtri -->
+    <div class="add-item-cats" id="zakazCats"></div>
+
+    <!-- Taomlar gridi -->
+    <div class="add-item-grid" id="zakazMenuGrid"></div>
+
+    <!-- Korzina (pastda yopishib turadi) -->
+    <div class="zakaz-cart-bar" id="zakazCartBar" style="display:none">
+      <div class="zakaz-cart-header" id="zakazCartHeader"></div>
+      <div class="zakaz-cart-items" id="zakazCartItems"></div>
+      <div class="zakaz-cart-footer">
+        <div class="zakaz-cart-total">
+          <span class="zct-label">Jami:</span>
+          <span class="zct-amount" id="zakazTotalAmount">0 so'm</span>
+        </div>
+        <div class="zakaz-cart-buttons">
+          <button class="btn-zakaz-save" onclick="saveZakaz()">Saqlash</button>
+          <button class="btn-zakaz-send" onclick="sendZakaz()">Yuborish</button>
+          <button class="btn-zakaz-kassa" onclick="sendZakazToKassa()">Kassaga</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CHECK EDIT MODAL ===== -->
+<div id="checkEditModal" class="modal-overlay">
+  <div class="modal-box check-edit-box">
+    <div class="modal-head">
+      <h3 id="checkEditTitle">Chekni tahrirlash</h3>
+      <button class="close-btn" onclick="closeCheckEdit()">✕</button>
+    </div>
+    <div id="checkEditItems" class="check-edit-scroll"></div>
+    <div class="atc-add-bar">
+      <button class="btn-add-to-check" onclick="closeCheckEdit(); openZakazForTable(editingCheckTableId);">+ Taom qo'shish</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-confirm" onclick="saveCheckEdit()">Saqlash</button>
+      <button class="btn-send" onclick="sendCheckToKassa()">Kassaga yuborish →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD TO CHECK PANEL ===== -->
+<div id="addToCheckPanel" class="add-item-panel" style="display:none">
+  <div class="add-item-head">
+    <h3 id="atcPanelTitle">Chekka taom qo'shish</h3>
+    <button class="close-btn" onclick="cancelDirectCheckAdd()">✕</button>
+  </div>
+  <div class="add-item-cats" id="atcCats"></div>
+  <div class="add-item-grid" id="atcGrid"></div>
+  <div class="add-item-footer" id="atcFooter">
+    <button class="btn-back" onclick="cancelDirectCheckAdd()">✕ Bekor</button>
+    <button class="btn-confirm" style="flex:2" onclick="saveDirectCheckItems()">✅ Saqlash va chiqarish</button>
+  </div>
+</div>
+
+<!-- ===== DIRECT ADD TO CHECK PANEL ===== -->
+<div id="directAddPanel" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;flex-direction:column;overflow:hidden;font-family:var(--font-body);">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--bg1);border-bottom:1px solid var(--border);">
+    <h3 id="directAddTitle" style="font-family:var(--font-head);font-size:18px;color:var(--text);">Taom qo'shish</h3>
+    <button onclick="closeDirectAdd()" style="width:30px;height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;font-size:16px;">✕</button>
+  </div>
+  <div id="directAddCats" style="display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);flex-shrink:0;"></div>
+  <div id="directAddGrid" style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px;"></div>
+  <div style="padding:12px 16px;border-top:1px solid var(--border);background:var(--bg1);display:flex;gap:10px;flex-shrink:0;">
+    <button onclick="closeDirectAdd()" style="flex:1;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-weight:700;font-size:14px;cursor:pointer;">✕ Bekor</button>
+    <button onclick="saveDirectAdd()" style="flex:2;padding:12px;background:var(--accent);border:none;border-radius:8px;color:var(--bg);font-weight:700;font-size:14px;cursor:pointer;">✅ Saqlash</button>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast" class="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Kafe konfiguratsiya -->
+<script src="firebase-config.js"></script>
+<!-- Ma'lumotlar -->
+<script src="data.js?v=2"></script>
+<script src="admin-ofisant.js?v=2"></script>
+</body>
+</html>

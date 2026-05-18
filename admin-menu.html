@@ -1,0 +1,474 @@
+﻿<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel – Mingchinor Kompleks</title>
+<link rel="stylesheet" href="admin-menu.css">
+</head>
+<body>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <img src="logo.jpg" alt="Logo" style="width:100px;height:100px;border-radius:50%;margin-bottom:12px;border:2px solid var(--accent);padding:4px;background:var(--bg-card2);">
+      <h1>Mingchinor</h1>
+      <p>Admin Boshqaruv Paneli</p>
+    </div>
+    <div id="loginErr" class="login-error" style="display:none"></div>
+    <div class="field-group"><label>Login</label><input type="text" id="aLogin" placeholder="admin"></div>
+    <div class="field-group"><label>Parol</label><input type="password" id="aPass" placeholder="••••••••"></div>
+    <button class="btn-login" onclick="doAdminLogin()">Kirish</button>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="appLayout" class="app-layout" style="display:none">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <img src="logo.jpg" alt="Logo" style="width:40px;height:40px;border-radius:50%;border:1px solid var(--accent);margin-right:10px;">
+      <div>
+        <h1>Mingchinor</h1>
+        <p>Admin Panel</p>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-section="reports" onclick="goSection('reports')">
+        <span class="nav-icon">📊</span><span class="nav-label">Hisobot</span>
+      </button>
+      <button class="nav-item" data-section="menu" onclick="goSection('menu')">
+        <span class="nav-icon">🍽️</span><span class="nav-label">Menyu</span>
+      </button>
+      <button class="nav-item" data-section="kassa" onclick="goSection('kassa')">
+        <span class="nav-icon">💳</span><span class="nav-label">Kassa</span>
+        <span id="kassaBadge" class="nav-badge" style="display:none">0</span>
+      </button>
+      <button class="nav-item" data-section="tables" onclick="goSection('tables')">
+        <span class="nav-icon">🪑</span><span class="nav-label">Stol</span>
+      </button>
+      <button class="nav-item" data-section="waiters" onclick="goSection('waiters')">
+        <span class="nav-icon">👨‍🍳</span><span class="nav-label">Ofisant</span>
+      </button>
+      <button class="nav-item" data-section="printers" onclick="goSection('printers')">
+        <span class="nav-icon">🖨️</span><span class="nav-label">Xprinterlar</span>
+      </button>
+    </nav>
+    <button class="btn-sidebar-logout" onclick="doAdminLogout()">Chiqish</button>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <!-- MOBILE HEADER -->
+    <div class="mobile-header">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="mobile-title" id="mobileTitle">Hisobot</span>
+    </div>
+
+    <!-- ===== REPORTS ===== -->
+    <section id="sectionReports" class="section active">
+      <div class="section-top">
+        <h2>📊 Hisobot</h2>
+      </div>
+      <div class="report-filters">
+        <div class="filter-row">
+          <div class="field-group inline">
+            <label>Sana</label>
+            <input type="date" id="repDate" value="">
+          </div>
+          <div class="field-group inline">
+            <label>Davr</label>
+            <select id="repPeriod">
+              <option value="day">Kunlik</option>
+              <option value="week">Haftalik</option>
+              <option value="month">Oylik</option>
+              <option value="year">Yillik</option>
+            </select>
+          </div>
+          <button class="btn-ok" onclick="loadReport()">OK</button>
+        </div>
+      </div>
+      <div class="report-mini-tabs">
+        <button class="report-mini-btn active" data-report-view="sales" onclick="switchReportView('sales')">Savdo tushumi</button>
+        <button class="report-mini-btn" data-report-view="checks" onclick="switchReportView('checks')">Cheklar bo'yicha tushum</button>
+        <button class="report-mini-btn" data-report-view="waiters" onclick="switchReportView('waiters')">Ofisant cheki</button>
+      </div>
+
+      <div class="report-subview active" data-report-view="sales">
+        <div class="report-stats" id="reportStats"></div>
+        <div class="report-checks-table" id="reportChecksTable"></div>
+      </div>
+
+      <div class="report-subview" data-report-view="checks">
+        <div class="report-checks-table" id="reportChecksIncomeTable"></div>
+      </div>
+
+      <div class="report-subview" data-report-view="waiters">
+        <div class="report-waiter-filters" id="reportWaiterFilters"></div>
+        <div class="report-waiter-stats" id="reportWaiterStats"></div>
+        <div class="report-checks-table" id="reportWaiterChecksTable"></div>
+      </div>
+    </section>
+
+    <!-- ===== MENU ===== -->
+    <section id="sectionMenu" class="section">
+      <div class="section-top">
+        <h2>🍽️ Menyu Boshqaruvi</h2>
+      </div>
+
+      <!-- Add Item Form -->
+      <div class="card form-card">
+        <h3>Yangi Taom Qo'shish</h3>
+        <div class="form-grid">
+          <div class="field-group">
+            <label>Kategoriya</label>
+            <div class="cat-select-row">
+              <select id="menuCatSelect">
+                <option value="">– Tanlang –</option>
+              </select>
+              <button class="btn-create-cat" onclick="showCreateCat()">+ Yaratish</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Taom nomi</label>
+            <input type="text" id="menuItemName" placeholder="Masalan: Osh, Shashlik...">
+          </div>
+          <div class="field-group">
+            <label>Tannarxi (so'm)</label>
+            <input type="number" id="menuItemCost" placeholder="0">
+          </div>
+          <div class="field-group">
+            <label>Sotish narxi (so'm)</label>
+            <input type="number" id="menuItemSell" placeholder="0">
+          </div>
+          <div class="field-group full">
+            <label>Rasm</label>
+            <div class="img-upload-row">
+              <input type="file" id="menuItemImg" accept="image/*" onchange="previewImg(event)">
+              <span class="or-label">yoki</span>
+              <input type="url" id="menuItemImgUrl" placeholder="Rasm URL manzili...">
+              <button class="btn-load-url" onclick="loadImgUrl()">Yuklash</button>
+            </div>
+            <div id="imgPreviewWrap" style="display:none;margin-top:8px">
+              <img id="imgPreview" style="height:80px;border-radius:8px;object-fit:cover;">
+              <button class="btn-icon danger" onclick="clearImg()">✕</button>
+            </div>
+          </div>
+        </div>
+        <div id="menuFormErr" class="form-error" style="display:none"></div>
+        <button class="btn-primary" onclick="addMenuItem()">+ Taom Qo'shish</button>
+      </div>
+
+      <!-- Items Table -->
+      <div class="card">
+        <h3>Barcha Taomlar</h3>
+        <div class="table-responsive">
+          <table class="data-table" id="menuTable">
+            <thead>
+              <tr><th>⇅</th><th>№</th><th>Nomi</th><th>Kategoriya</th><th>Tannarx</th><th>Sotish narxi</th><th>Amallar</th></tr>
+            </thead>
+            <tbody id="menuTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== KASSA ===== -->
+    <section id="sectionKassa" class="section">
+      <div class="section-top">
+        <h2>💳 Kassa</h2>
+      </div>
+      <div id="kassaList" class="cards-list"></div>
+    </section>
+
+    <!-- ===== TABLES ===== -->
+    <section id="sectionTables" class="section">
+      <div class="section-top">
+        <h2>🪑 Stol Boshqaruvi</h2>
+      </div>
+      <div class="card form-card">
+        <h3>Yangi Stol Qo'shish</h3>
+        <div class="form-row">
+          <div class="field-group"><label>Stol nomi</label><input type="text" id="tableNameInput" placeholder="Masalan: VIP Stol 1"></div>
+          <button class="btn-primary compact" onclick="addTable()">+ Qo'shish</button>
+        </div>
+      </div>
+      <div id="tablesGrid" class="tables-admin-grid"></div>
+    </section>
+
+    <!-- ===== WAITERS ===== -->
+    <section id="sectionWaiters" class="section">
+      <div class="section-top">
+        <h2>👨‍🍳 Ofisant Boshqaruvi</h2>
+      </div>
+      
+      <!-- XIZMAT HAQI -->
+      <div class="card form-card">
+        <h3>⚙️ Xizmat Haqi Sozlamalari</h3>
+        <div class="form-row">
+          <div class="field-group">
+            <label>1 kishi uchun xizmat haqi (so'm)</label>
+            <input type="number" id="globalServiceFee" placeholder="Masalan: 5000">
+          </div>
+          <button class="btn-primary compact" onclick="saveServiceFee()">Saqlash</button>
+        </div>
+      </div>
+
+      <div class="card form-card">
+        <h3>Yangi Ofisant</h3>
+        <div class="form-grid">
+          <div class="field-group"><label>Ism</label><input type="text" id="wFirstName" placeholder="Ism"></div>
+          <div class="field-group"><label>Familya</label><input type="text" id="wLastName" placeholder="Familya"></div>
+          <div class="field-group"><label>Login</label><input type="text" id="wLogin" placeholder="login"></div>
+          <div class="field-group"><label>Parol</label><input type="password" id="wPass" placeholder="parol"></div>
+        </div>
+        <div id="waiterFormErr" class="form-error" style="display:none"></div>
+        <button class="btn-primary" onclick="addWaiter()">+ Ofisant Qo'shish</button>
+      </div>
+      <div id="waitersList" class="waiters-list"></div>
+    </section>
+
+    <!-- ===== PRINTERS ===== -->
+    <section id="sectionPrinters" class="section">
+      <div class="section-top">
+        <h2>🖨️ Xprinterlar</h2>
+        <button class="btn-ok" onclick="pingAllPrinters()">&#8635; Tekshirish</button>
+      </div>
+
+      <div class="printers-grid" id="printersGrid">
+
+        <!-- KASSA PRINTER -->
+        <div class="printer-card" id="pcard-kassa">
+          <div class="printer-header">
+            <div class="printer-title-row">
+              <span class="printer-icon">🖨️</span>
+              <div>
+                <div class="printer-name">Kassa</div>
+                <div class="printer-role">To'lov cheki</div>
+              </div>
+            </div>
+            <div class="printer-status" id="pstatus-kassa">
+              <span class="status-dot offline" id="pdot-kassa"></span>
+              <span class="status-text" id="ptxt-kassa">Tekshirilmagan</span>
+            </div>
+          </div>
+          <div class="printer-ip-row">
+            <input type="text" class="printer-ip-input" id="pip-kassa"
+              placeholder="192.168.1.100" value=""
+              oninput="savePrinterIP('kassa', this.value)">
+            <button class="btn-ping" onclick="pingSingle('kassa')">Ping</button>
+          </div>
+          <div class="printer-cats">Barcha buyurtma cheklari</div>
+        </div>
+
+        <!-- MILLIY TAOMLAR PRINTER -->
+        <div class="printer-card" id="pcard-milliy">
+          <div class="printer-header">
+            <div class="printer-title-row">
+              <span class="printer-icon">🍲</span>
+              <div>
+                <div class="printer-name">Milliy taomlar</div>
+                <div class="printer-role">Oshxona &#8211; Milliy</div>
+              </div>
+            </div>
+            <div class="printer-status" id="pstatus-milliy">
+              <span class="status-dot offline" id="pdot-milliy"></span>
+              <span class="status-text" id="ptxt-milliy">Tekshirilmagan</span>
+            </div>
+          </div>
+          <div class="printer-ip-row">
+            <input type="text" class="printer-ip-input" id="pip-milliy"
+              placeholder="192.168.1.101" value=""
+              oninput="savePrinterIP('milliy', this.value)">
+            <button class="btn-ping" onclick="pingSingle('milliy')">Ping</button>
+          </div>
+          <div class="printer-cats" id="pcats-milliy">Kategoriya bog'lanmagan</div>
+          <div class="printer-bind">
+            <label>Kategoriyalar:</label>
+            <div id="pbind-milliy" class="printer-cat-checks"></div>
+          </div>
+        </div>
+
+        <!-- KABOBLAR PRINTER -->
+        <div class="printer-card" id="pcard-kabob">
+          <div class="printer-header">
+            <div class="printer-title-row">
+              <span class="printer-icon">🍖</span>
+              <div>
+                <div class="printer-name">Kaboblar</div>
+                <div class="printer-role">Oshxona &#8211; Kabob</div>
+              </div>
+            </div>
+            <div class="printer-status" id="pstatus-kabob">
+              <span class="status-dot offline" id="pdot-kabob"></span>
+              <span class="status-text" id="ptxt-kabob">Tekshirilmagan</span>
+            </div>
+          </div>
+          <div class="printer-ip-row">
+            <input type="text" class="printer-ip-input" id="pip-kabob"
+              placeholder="192.168.1.102" value=""
+              oninput="savePrinterIP('kabob', this.value)">
+            <button class="btn-ping" onclick="pingSingle('kabob')">Ping</button>
+          </div>
+          <div class="printer-cats" id="pcats-kabob">Kategoriya bog'lanmagan</div>
+          <div class="printer-bind">
+            <label>Kategoriyalar:</label>
+            <div id="pbind-kabob" class="printer-cat-checks"></div>
+          </div>
+        </div>
+
+        <!-- BALIQXONA PRINTER -->
+        <div class="printer-card" id="pcard-baliq">
+          <div class="printer-header">
+            <div class="printer-title-row">
+              <span class="printer-icon">🐟</span>
+              <div>
+                <div class="printer-name">Baliqxona</div>
+                <div class="printer-role">Oshxona &#8211; Baliq</div>
+              </div>
+            </div>
+            <div class="printer-status" id="pstatus-baliq">
+              <span class="status-dot offline" id="pdot-baliq"></span>
+              <span class="status-text" id="ptxt-baliq">Tekshirilmagan</span>
+            </div>
+          </div>
+          <div class="printer-ip-row">
+            <input type="text" class="printer-ip-input" id="pip-baliq"
+              placeholder="192.168.1.103" value=""
+              oninput="savePrinterIP('baliq', this.value)">
+            <button class="btn-ping" onclick="pingSingle('baliq')">Ping</button>
+          </div>
+          <div class="printer-cats" id="pcats-baliq">Kategoriya bog'lanmagan</div>
+          <div class="printer-bind">
+            <label>Kategoriyalar:</label>
+            <div id="pbind-baliq" class="printer-cat-checks"></div>
+          </div>
+        </div>
+
+      </div><!-- /printersGrid -->
+
+      <div class="printer-info-box">
+        <p>ℹ️ <strong>IP manzil:</strong> Printer LAN kabel bilan ulangan bo'lishi kerak. IP manzilni kiriting va "Ping" tugmasini bosing.</p>
+        <p style="margin-top:8px">🔵 Ko'k = yoqiq &nbsp;•&nbsp; 🔴 Qizil miltillovchi = o'chiq yoki topilmadi</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ===== CREATE CATEGORY MODAL ===== -->
+<div id="createCatModal" class="modal-overlay">
+  <div class="modal-box small">
+    <div class="modal-head">
+      <h3>Kategoriya yaratish</h3>
+      <button class="close-btn" onclick="closeCreateCat()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label>Kategoriya nomi</label>
+        <input type="text" id="newCatName" placeholder="Masalan: Birinchi taomlar">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="createCategory()">Yaratish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT ITEM MODAL ===== -->
+<div id="editItemModal" class="modal-overlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>Taomni tahrirlash</h3>
+      <button class="close-btn" onclick="closeEditItem()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editItemId">
+      <div class="form-grid">
+        <div class="field-group"><label>Kategoriya</label>
+          <select id="editItemCat"></select>
+        </div>
+        <div class="field-group"><label>Nomi</label><input type="text" id="editItemName"></div>
+        <div class="field-group"><label>Tannarx</label><input type="number" id="editItemCost"></div>
+        <div class="field-group"><label>Sotish narxi</label><input type="number" id="editItemSell"></div>
+        <div class="field-group full">
+          <label>Rasm URL</label>
+          <input type="url" id="editItemImgUrl" placeholder="Rasm URL">
+          <div id="editImgPreviewWrap" style="margin-top:8px;display:none">
+            <img id="editImgPreview" style="height:60px;border-radius:8px">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="saveEditItem()">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== EDIT WAITER MODAL ===== -->
+<div id="editWaiterModal" class="modal-overlay">
+  <div class="modal-box small">
+    <div class="modal-head">
+      <h3>Ofisantni tahrirlash</h3>
+      <button class="close-btn" onclick="closeEditWaiter()">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editWaiterId">
+      <div class="form-grid">
+        <div class="field-group"><label>Ism</label><input type="text" id="ewFirst"></div>
+        <div class="field-group"><label>Familya</label><input type="text" id="ewLast"></div>
+        <div class="field-group"><label>Login</label><input type="text" id="ewLogin"></div>
+        <div class="field-group"><label>Parol</label><input type="password" id="ewPass"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="saveEditWaiter()">Saqlash</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== KASSA CHECK PREVIEW ===== -->
+<div id="kassaCheckModal" class="modal-overlay">
+  <div class="modal-box kassa-receipt">
+    <div class="modal-head">
+      <h3>Kassa Cheki</h3>
+      <button class="close-btn" onclick="closeKassaCheck()">✕</button>
+    </div>
+    <div id="receiptContent" class="receipt-content"></div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="printReceipt()">🖨️ Chiqarish</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REPORT CHECK PREVIEW ===== -->
+<div id="reportCheckModal" class="modal-overlay">
+  <div class="modal-box kassa-receipt">
+    <div class="modal-head">
+      <h3>Chek tafsiloti</h3>
+      <button class="close-btn" onclick="closeReportCheck()">&times;</button>
+    </div>
+    <div id="reportCheckContent" class="receipt-content"></div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast" class="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Kafe konfiguratsiya -->
+<script src="firebase-config.js"></script>
+<!-- Ma'lumotlar -->
+<script src="data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<script src="admin-menu.js"></script>
+</body>
+</html>
+
+

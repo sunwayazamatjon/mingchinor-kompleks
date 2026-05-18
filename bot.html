@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a0a00">
+<title>Mingchinor Delivery</title>
+<!-- Telegram Web App script -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="mijoz.css">
+<style>
+  /* Kichik o'zgartirishlar Telegram bot uchun */
+  body { background: var(--bg); }
+  .menu-header { display: flex; justify-content: center; } 
+  .cart-modal .modal-box { padding-bottom: 20px; }
+  .delivery-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .delivery-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .delivery-field label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; font-weight: 600; }
+  .delivery-field input, .delivery-field select { 
+    background: var(--bg1); border: 1px solid var(--border); 
+    border-radius: 8px; color: var(--text); padding: 12px; font-size: 14px; outline: none;
+  }
+  .delivery-field input:focus, .delivery-field select:focus { border-color: var(--accent); }
+  .btn-location {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: rgba(108,143,255,0.1); border: 1px solid var(--accent);
+    color: var(--accent); padding: 10px; border-radius: 8px; cursor: pointer;
+    font-weight: 600; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== MENU PAGE ===== -->
+<div id="menuPage" class="page">
+  <header class="menu-header">
+    <div class="header-brand">
+      <img src="logo.jpg" alt="Logo" class="header-logo-img">
+      <span>Mingchinor Delivery</span>
+    </div>
+  </header>
+
+  <div class="categories-bar" id="categoriesBar"></div>
+
+  <div class="menu-content" id="menuContent"></div>
+
+  <div class="cart-fab" id="cartFab" onclick="openCart()" style="display:none">
+    <span>🛒</span>
+    <span id="cartCount" class="cart-badge">0</span>
+    <span id="cartTotal" class="cart-total"></span>
+  </div>
+</div>
+
+<!-- ===== CART MODAL ===== -->
+<div id="cartModal" class="modal-overlay">
+  <div class="modal-box cart-modal">
+    <div class="modal-head">
+      <h3>Sizning buyurtmangiz</h3>
+      <button class="close-btn" onclick="closeCart()">✕</button>
+    </div>
+    <div id="cartItems" class="cart-items"></div>
+    
+    <div class="cart-footer" id="cartFooter" style="display:none">
+      
+      <!-- Delivery Form -->
+      <div class="delivery-form">
+        <div class="delivery-field">
+          <label>Telefon raqamingiz</label>
+          <input type="tel" id="delPhone" placeholder="+998 90 123 45 67">
+        </div>
+        
+        <div class="delivery-field">
+          <label>Manzil (yoki lokatsiya jo'nating)</label>
+          <input type="text" id="delAddress" placeholder="Manzilni kiriting...">
+          <button class="btn-location" onclick="requestLocation()">
+            <span>📍</span> Hozirgi joylashuvimni aniqlash
+          </button>
+        </div>
+        
+        <div class="delivery-field">
+          <label>To'lov usuli</label>
+          <select id="delPayment">
+            <option value="naqd">Naqd pul orqali</option>
+            <option value="karta">Plastik karta orqali (Click/Payme)</option>
+          </select>
+        </div>
+        
+        <div class="delivery-field">
+          <label>Qo'shimcha izoh</label>
+          <input type="text" id="delNote" placeholder="Izoh (ixtiyoriy)">
+        </div>
+      </div>
+
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span>JAMI:</span>
+          <span id="cartTotalAmount" class="summary-total"></span>
+        </div>
+      </div>
+      <button class="btn-primary order-btn" onclick="placeDeliveryOrder()">
+        Tasdiqlash va Buyurtma berish
+      </button>
+    </div>
+    
+    <div id="emptyCart" class="empty-cart">
+      <span>🛒</span>
+      <p>Karzinka bo'sh</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== IMAGE MODAL ===== -->
+<div id="imgModal" class="modal-overlay" onclick="closeImgModal()">
+  <div class="img-modal-box" onclick="event.stopPropagation()">
+    <button class="close-btn img-close" onclick="closeImgModal()">✕</button>
+    <img id="imgModalSrc" src="" alt="">
+    <div class="img-modal-info">
+      <h3 id="imgModalName"></h3>
+      <p id="imgModalPrice"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast" class="toast"></div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="data.js"></script>
+<script src="bot.js"></script>
+</body>
+</html>

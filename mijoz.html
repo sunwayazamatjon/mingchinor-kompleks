@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1a0a00">
+<title>Mingchinor Kompleks</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="mijoz.css">
+</head>
+<body>
+
+<!-- ===== LANG MODAL ===== -->
+<div id="langModal" class="modal-overlay">
+  <div class="modal-box lang-modal">
+    <div class="brand-logo">
+      <img src="logo.jpg" alt="Logo" class="brand-logo-img">
+      <p id="brandSubtitle1">Kompleks</p>
+    </div>
+    <h2 id="selectLangText">Tilni tanlang</h2>
+    <div class="lang-buttons">
+      <button class="lang-btn" onclick="selectLang('uz')">
+        <span class="flag">🇺🇿</span>
+        <span>O'zbek</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang('ru')">
+        <span class="flag">🇷🇺</span>
+        <span>Русский</span>
+      </button>
+      <button class="lang-btn" onclick="selectLang('en')">
+        <span class="flag">🇬🇧</span>
+        <span>English</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TABLE MODAL ===== -->
+<div id="tableModal" class="modal-overlay">
+  <div class="modal-box table-modal">
+    <div class="brand-logo small">
+      <img src="logo.jpg" alt="Logo" class="brand-logo-img">
+      <h1 id="brandSubtitle2">Kompleks</h1>
+    </div>
+    <div class="form-group">
+      <label id="tableLabelText"></label>
+      <div class="counter-input">
+        <button class="counter-btn" onclick="changeTable(-1)">−</button>
+        <div class="table-display">
+          <span id="tableNameDisplay"></span>
+          <span id="tableStatusDisplay"></span>
+        </div>
+        <button class="counter-btn" onclick="changeTable(1)">+</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label id="guestCountText"></label>
+      <div class="counter-input">
+        <button class="counter-btn" onclick="changeGuests(-1)">−</button>
+        <input type="number" id="guestInput" value="1" min="1" max="20">
+        <button class="counter-btn" onclick="changeGuests(1)">+</button>
+      </div>
+    </div>
+    <button class="btn-primary" id="openMenuBtn" onclick="openMenu()" disabled>
+      <span id="openMenuText"></span>
+      <span class="btn-arrow">→</span>
+    </button>
+  </div>
+</div>
+
+<!-- ===== MENU PAGE ===== -->
+<div id="menuPage" class="page hidden">
+
+  <!-- TOP BAR -->
+  <header class="menu-header">
+    <div class="header-brand">
+      <img src="logo.jpg" alt="Logo" class="header-logo-img">
+      <span>Mingchinor</span>
+    </div>
+    <div class="header-controls">
+      <button class="ctrl-btn" onclick="showLangChange()" title="Til">
+        <span id="currentLangFlag">🇺🇿</span>
+      </button>
+      <button class="ctrl-install" id="headerInstallBtn" onclick="installPWA()" title="Yuklab olish">
+        <span>📲</span>
+      </button>
+      <button class="ctrl-btn" onclick="showTableChange()" title="Stol">
+        <span class="table-badge" id="headerTableBadge">T1</span>
+      </button>
+      <button class="ctrl-waiter" id="callWaiterBtn" onclick="callWaiter()">
+        <span>🔔</span>
+        <span id="callWaiterText"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- CATEGORIES -->
+  <div class="categories-bar" id="categoriesBar">
+    <button class="cat-btn active" data-cat="all" onclick="filterCategory('all')">
+      <span id="allCatText"></span>
+    </button>
+  </div>
+
+  <!-- MENU ITEMS GRID -->
+  <div class="menu-content" id="menuContent">
+    <div class="loading-state" id="loadingState">
+      <div class="spinner"></div>
+    </div>
+  </div>
+
+  <!-- CART BUTTON -->
+  <div class="cart-fab" id="cartFab" onclick="openCart()" style="display:none">
+    <span>🛒</span>
+    <span id="cartCount" class="cart-badge">0</span>
+    <span id="cartTotal" class="cart-total"></span>
+  </div>
+</div>
+
+<!-- ===== CART MODAL ===== -->
+<div id="cartModal" class="modal-overlay">
+  <div class="modal-box cart-modal">
+    <div class="modal-head">
+      <h3 id="cartTitle"></h3>
+      <button class="close-btn" onclick="closeCart()">✕</button>
+    </div>
+    <div id="cartItems" class="cart-items"></div>
+    <div class="cart-footer" id="cartFooter" style="display:none">
+      <div class="note-section">
+        <textarea id="orderNote" rows="2" placeholder=""></textarea>
+      </div>
+      <div class="cart-guest-row">
+        <span id="cartGuestLabel"></span>
+        <div class="counter-input cart-guest-counter">
+          <button class="counter-btn cart-counter-btn" onclick="changeGuestsFromCart(-1)">-</button>
+          <input type="number" id="cartGuestInput" value="1" min="1" max="20">
+          <button class="counter-btn cart-counter-btn" onclick="changeGuestsFromCart(1)">+</button>
+        </div>
+      </div>
+      <div class="cart-summary">
+        <div class="summary-row">
+          <span id="totalText"></span>
+          <span id="cartTotalAmount" class="summary-total"></span>
+        </div>
+        <div class="summary-row" id="serviceFeeRow" style="display:none; margin-top:8px;">
+          <span id="serviceFeeLabel"></span>
+          <span id="cartServiceFeeAmount" class="summary-total"></span>
+        </div>
+      </div>
+      <button class="btn-primary order-btn" onclick="placeOrder()">
+        <span id="orderBtnText"></span>
+      </button>
+    </div>
+    <div id="emptyCart" class="empty-cart">
+      <span>🛒</span>
+      <p id="emptyCartText"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== IMAGE MODAL ===== -->
+<div id="imgModal" class="modal-overlay" onclick="closeImgModal()">
+  <div class="img-modal-box" onclick="event.stopPropagation()">
+    <button class="close-btn img-close" onclick="closeImgModal()">✕</button>
+    <img id="imgModalSrc" src="" alt="">
+    <div class="img-modal-info">
+      <h3 id="imgModalName"></h3>
+      <p id="imgModalPrice"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LANG CHANGE MODAL ===== -->
+<div id="langChangeModal" class="modal-overlay">
+  <div class="modal-box small-modal">
+    <div class="modal-head">
+      <h3 id="selectLangText2"></h3>
+      <button class="close-btn" onclick="closeLangChange()">✕</button>
+    </div>
+    <div class="lang-buttons">
+      <button class="lang-btn" onclick="changeLang('uz')">
+        <span class="flag">🇺🇿</span><span>O'zbek</span>
+      </button>
+      <button class="lang-btn" onclick="changeLang('ru')">
+        <span class="flag">🇷🇺</span><span>Русский</span>
+      </button>
+      <button class="lang-btn" onclick="changeLang('en')">
+        <span class="flag">🇬🇧</span><span>English</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TABLE CHANGE MODAL ===== -->
+<div id="tableChangeModal" class="modal-overlay">
+  <div class="modal-box small-modal">
+    <div class="modal-head">
+      <h3 id="tableChangeTitleText"></h3>
+      <button class="close-btn" onclick="closeTableChange()">✕</button>
+    </div>
+    <div id="tableChangeGrid" class="table-grid"></div>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast" class="toast"></div>
+
+<!-- ===== PWA INSTALL BANNER ===== -->
+<div id="installBanner" class="install-banner" style="display:none">
+  <div class="install-info">
+    <span>📱</span>
+    <div>
+      <strong id="installAppText"></strong>
+      <p id="installDescText"></p>
+    </div>
+  </div>
+  <div class="install-actions">
+    <button class="btn-install" id="installBtn" onclick="installPWA()"></button>
+    <button class="btn-later" onclick="dismissInstall()"></button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- Kafe konfiguratsiya -->
+<script src="firebase-config.js"></script>
+<!-- Ma'lumotlar -->
+<script src="data.js"></script>
+<script src="i18n.js"></script>
+<script src="mijoz.js"></script>
+</body>
+</html>
