@@ -408,3 +408,57 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
 .printer-card { transition: all 0.3s ease; }
 .printer-online { border-color: var(--success); box-shadow: 0 0 12px rgba(62,207,142,0.15); }
 .printer-offline { border-color: var(--danger); box-shadow: 0 0 12px rgba(232,64,64,0.15); opacity: 0.8; }
+
+/* ===== KASSA TABLES GRID ===== */
+.tables-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(110px, 1fr)); gap:12px; margin-bottom:20px; }
+.table-card {
+  background:var(--bg2); border:2px solid var(--border); border-radius:var(--radius);
+  padding:16px; text-align:center; cursor:pointer; transition:all .3s;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.table-card:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+.table-card.active { border-color:var(--accent); background:var(--accent-dim); }
+.table-number { font-size:28px; font-weight:700; color:var(--accent); }
+.table-status { font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1px; }
+.table-count { font-size:12px; background:var(--bg3); padding:4px 8px; border-radius:4px; color:var(--text); font-weight:600; }
+
+/* ===== PAYMENT MODAL ===== */
+.modal-overlay {
+  position:fixed; top:0; left:0; width:100%; height:100%;
+  background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center;
+  z-index:9999; backdrop-filter:blur(2px);
+}
+.modal-box {
+  background:var(--bg2); border-radius:var(--radius); box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp { from { transform:translateY(20px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.modal-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:20px; border-bottom:1px solid var(--border);
+}
+.modal-header h2 { margin:0; font-size:18px; }
+.btn-close {
+  background:none; border:none; font-size:24px; color:var(--text-dim);
+  cursor:pointer; padding:0; width:32px; height:32px;
+  display:flex; align-items:center; justify-content:center; transition:color .2s;
+}
+.btn-close:hover { color:var(--text); }
+.modal-body { padding:20px; }
+.btn-payment {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:20px; border:none; border-radius:var(--radius); color:white;
+  font-weight:600; cursor:pointer; transition:all .2s; gap:8px;
+}
+.btn-payment:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.2); }
+
+/* ===== ROL BO'YICHA CHEKLOVLAR (KASSIR) ===== */
+/* Kassir kirganda .admin-only belgili barcha elementlar yashiriladi:
+   taom/masalliq qo'shish-tahrirlash-o'chirish formalari, retsept boshqaruvi va h.k. */
+body.role-cashier .admin-only { display:none !important; }
+
+.btn-secondary {
+  background:var(--bg3); color:var(--text); border:1px solid var(--border);
+  border-radius:8px; padding:10px 16px; cursor:pointer; font-weight:600; transition:all .2s;
+}
+.btn-secondary:hover { background:var(--bg2); border-color:var(--accent); }

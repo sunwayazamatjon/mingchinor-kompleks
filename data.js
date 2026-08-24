@@ -26,6 +26,7 @@ function _eventsRef() {
 const _defaults = {
   categories: [],
   menu:        [],
+  ingredients: [],
   tables: [
     {id:1,name:'Stol 1',status:'free'},
     {id:2,name:'Stol 2',status:'free'},
@@ -46,6 +47,7 @@ const _defaults = {
 const _lsKey = {
   categories:  'mc_categories',
   menuItems:   'mc_menu',
+  ingredients: 'mc_ingredients',
   tables:      'mc_tables',
   waiters:     'mc_waiters',
   orders:      'mc_orders',
@@ -57,6 +59,7 @@ const _lsKey = {
 const _fsKey = {
   categories:  'categories',
   menuItems:   'menu',
+  ingredients: 'ingredients',
   tables:      'tables',
   waiters:     'waiters',
   orders:      'orders',
@@ -69,6 +72,7 @@ const DB = {
   // In-memory cache (localStorage fallback initially)
   categories:  JSON.parse(localStorage.getItem('mc_categories')  || '[]'),
   menuItems:   JSON.parse(localStorage.getItem('mc_menu')         || '[]'),
+  ingredients: JSON.parse(localStorage.getItem('mc_ingredients')  || '[]'),
   tables:      JSON.parse(localStorage.getItem('mc_tables')       || JSON.stringify(_defaults.tables)),
   waiters:     JSON.parse(localStorage.getItem('mc_waiters')      || JSON.stringify(_defaults.waiters)),
   orders:      JSON.parse(localStorage.getItem('mc_orders')       || '[]'),
@@ -141,10 +145,11 @@ const DB = {
 
 // ---- FIRESTORE DAN YUKLASH ----
 async function _loadFromFirestore() {
-  const keys = ['categories', 'menu', 'tables', 'waiters', 'orders', 'checks', 'waiterCalls'];
+  const keys = ['categories', 'menu', 'ingredients', 'tables', 'waiters', 'orders', 'checks', 'waiterCalls'];
   const dbMap = {
     categories:  'categories',
     menu:        'menuItems',
+    ingredients: 'ingredients',
     tables:      'tables',
     waiters:     'waiters',
     orders:      'orders',
@@ -181,6 +186,7 @@ function _setupListeners() {
   const watch = {
     categories:  'categories',
     menu:        'menuItems',
+    ingredients: 'ingredients',
     tables:      'tables',
     orders:      'orders',
     checks:      'checks',

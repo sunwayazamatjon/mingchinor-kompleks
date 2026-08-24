@@ -4,13 +4,18 @@
 
 const ADMIN_CREDS = { login: 'admin', password: 'admin123' };
 let currentImgData = '';
+let currentUser = null;
 let editingItemId = null;
 let viewingCheckId = null;
 let selectedReportWaiterId = 'all';
 
 // ---- INIT ----
 window.addEventListener('mc:db_ready', () => {
-  if(localStorage.getItem('mc_admin_session') === 'true') showApp();
+  if(localStorage.getItem('mc_admin_session') === 'true') {
+    const saved = localStorage.getItem('mc_current_user');
+    if(saved) currentUser = JSON.parse(saved);
+    showApp();
+  }
   setupRealtime();
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('repDate').value = today;
@@ -19,8 +24,23 @@ window.addEventListener('mc:db_ready', () => {
 function doAdminLogin() {
   const login = document.getElementById('aLogin').value.trim();
   const pass = document.getElementById('aPass').value;
+  
+  // Admin tekshirish
   if(login === ADMIN_CREDS.login && pass === ADMIN_CREDS.password) {
-    localStorage.setItem('mc_admin_session','true');
+    currentUser = { id: 0, name: 'Admin', login: 'admin', role: 'admin' };
+    localStorage.setItem('mc_admin_session', 'true');
+    localStorage.setItem('mc_current_user', JSON.stringify(currentUser));
+    showApp();
+    return;
+  }
+  
+  // Xodimlarni tekshirish
+  DB.waiters = JSON.parse(localStorage.getItem('mc_waiters') || '[]');
+  const user = DB.waiters.find(w => w.login === login && w.password === pass);
+  if(user) {
+    currentUser = { id: user.id, name: user.name + ' ' + user.surname, login: user.login, role: user.role };
+    localStorage.setItem('mc_admin_session', 'true');
+    localStorage.setItem('mc_current_user', JSON.stringify(currentUser));
     showApp();
   } else {
     document.getElementById('loginErr').textContent = "Login yoki parol noto'g'ri";
@@ -30,6 +50,9 @@ function doAdminLogin() {
 
 function doAdminLogout() {
   localStorage.removeItem('mc_admin_session');
+  localStorage.removeItem('mc_current_user');
+  currentUser = null;
+  document.body.classList.remove('role-cashier');
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('appLayout').style.display = 'none';
 }
@@ -37,8 +60,31 @@ function doAdminLogout() {
 function showApp() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appLayout').style.display = 'flex';
-  goSection('reports');
+  
+  // Session restore
+  const saved = localStorage.getItem('mc_current_user');
+  if(saved) currentUser = JSON.parse(saved);
+  
+  // Navbar filter
+  filterNavbarByRole();
+  
+  const initialSection = currentUser.role === 'cashier' ? 'kassa' : 'reports';
+  goSection(initialSection);
   updateKassaBadge();
+}
+
+function filterNavbarByRole() {
+  if(!currentUser) return;
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    const allowedRoles = btn.getAttribute('data-allowed-roles');
+    if(allowedRoles) {
+      const hasAccess = allowedRoles.split(',').includes(currentUser.role);
+      btn.style.display = hasAccess ? '' : 'none';
+    }
+  });
+  // Kassir uchun admin-only elementlarni (qo'shish/tahrirlash/o'chirish
+  // formalari va tugmalari) CSS orqali yashirish
+  document.body.classList.toggle('role-cashier', currentUser.role === 'cashier');
 }
 
 // ---- SIDEBAR ----
@@ -47,11 +93,12 @@ function goSection(name) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.querySelector(`[data-section="${name}"]`).classList.add('active');
   document.getElementById(`section${name.charAt(0).toUpperCase()+name.slice(1)}`).classList.add('active');
-  const titles = {reports:'Hisobot',menu:'Menyu',kassa:'Kassa',tables:'Stol',waiters:'Ofisant',printers:'Xprinterlar'};
+  const titles = {reports:'Hisobot',menu:'Menyu',ingredients:'Kirim masalliqlari',kassa:'Kassa',tables:'Stol',waiters:'Xodim',printers:'Xprinterlar'};
   document.getElementById('mobileTitle').textContent = titles[name] || '';
   document.getElementById('sidebar').classList.remove('open');
   if(name==='reports') { const t = new Date().toISOString().split('T')[0]; document.getElementById('repDate').value=t; loadReport(); }
   if(name==='menu') { loadMenuSection(); }
+  if(name==='ingredients') { loadIngredientsSection(); }
   if(name==='kassa') { loadKassa(); }
   if(name==='tables') { loadTables(); }
   if(name==='waiters') { loadWaiters(); }
@@ -350,17 +397,19 @@ function closeCreateCat() { document.getElementById('createCatModal').classList.
 
 function createCategory() {
   const name = document.getElementById('newCatName').value.trim();
+  const printer = document.getElementById('newCatPrinter').value || '';
   if(!name) return;
   DB.categories = JSON.parse(localStorage.getItem('mc_categories') || '[]');
   if(DB.categories.find(c => c.name.toLowerCase()===name.toLowerCase())) {
     showToast('Bu kategoriya mavjud!'); return;
   }
-  DB.categories.push({ id: DB.nextId(DB.categories), name });
+  DB.categories.push({ id: DB.nextId(DB.categories), name, printerTarget: printer });
   DB.save('categories');
   closeCreateCat();
   document.getElementById('newCatName').value = '';
+  document.getElementById('newCatPrinter').value = '';
   loadCategorySelect();
-  showToast(`"${name}" kategoriyasi yaratildi`);
+  showToast(`"${name}" kategoriyasi yaratildi${printer ? ` (printer: ${PRINTER_LABELS[printer] || printer})` : ''}`);
 }
 
 function previewImg(e) {
@@ -402,6 +451,7 @@ function addMenuItem() {
   const name = document.getElementById('menuItemName').value.trim();
   const cost = parseInt(document.getElementById('menuItemCost').value) || 0;
   const sell = parseInt(document.getElementById('menuItemSell').value) || 0;
+  const printerTarget = document.getElementById('menuItemPrinter').value || '';
   const errEl = document.getElementById('menuFormErr');
   errEl.style.display = 'none';
 
@@ -415,6 +465,7 @@ function addMenuItem() {
     id: DB.nextId(DB.menuItems),
     categoryId: catId,
     name, costPrice: cost, sellPrice: sell,
+    printerTarget,
     image: currentImgData,
     unavailable: false, deleted: false
   };
@@ -426,6 +477,7 @@ function addMenuItem() {
   document.getElementById('menuItemName').value = '';
   document.getElementById('menuItemCost').value = '';
   document.getElementById('menuItemSell').value = '';
+  document.getElementById('menuItemPrinter').value = '';
   clearImg();
   renderMenuTable();
   showToast(`"${name}" qo'shildi`);
@@ -502,9 +554,9 @@ function createMenuRow(item, index, catName) {
     <td>${formatPrice(item.sellPrice)}</td>
     <td>
       <div class="actions-cell">
-        <button class="btn-icon edit" onclick="openEditItem('${item.id}')" title="Tahrirlash">✏️</button>
+        <button class="btn-icon edit admin-only" onclick="openEditItem('${item.id}')" title="Tahrirlash">✏️</button>
         <button class="btn-icon toggle" onclick="toggleItem('${item.id}')" title="${item.unavailable?'Qayta yoqish':'Vaqtincha o\'chirish'}">${item.unavailable?'▶':'⏸'}</button>
-        <button class="btn-icon danger" onclick="deleteItem('${item.id}')" title="O'chirish">🗑️</button>
+        <button class="btn-icon danger admin-only" onclick="deleteItem('${item.id}')" title="O'chirish">🗑️</button>
       </div>
     </td>
   `;
@@ -522,6 +574,7 @@ function openEditItem(id) {
   document.getElementById('editItemName').value = item.name;
   document.getElementById('editItemCost').value = item.costPrice;
   document.getElementById('editItemSell').value = item.sellPrice;
+  document.getElementById('editItemPrinter').value = item.printerTarget || '';
   document.getElementById('editItemImgUrl').value = item.image || '';
   const pw = document.getElementById('editImgPreviewWrap');
   if(item.image) {
@@ -540,15 +593,16 @@ function closeEditItem() { document.getElementById('editItemModal').classList.re
 
 function saveEditItem() {
   DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
-  const item = DB.menuItems.find(m => m.id===editingItemId);
+  const item = DB.menuItems.find(m => String(m.id)===String(editingItemId));
   if(!item) return;
   const newName = document.getElementById('editItemName').value.trim();
-  const duplicate = DB.menuItems.find(m => m.name.toLowerCase()===newName.toLowerCase() && m.id!==editingItemId && !m.deleted);
+  const duplicate = DB.menuItems.find(m => m.name.toLowerCase()===newName.toLowerCase() && String(m.id)!==String(editingItemId) && !m.deleted);
   if(duplicate) { showToast('Bu nomli taom allaqachon mavjud!'); return; }
   item.categoryId = parseInt(document.getElementById('editItemCat').value);
   item.name = newName;
   item.costPrice = parseInt(document.getElementById('editItemCost').value) || 0;
   item.sellPrice = parseInt(document.getElementById('editItemSell').value) || 0;
+  item.printerTarget = document.getElementById('editItemPrinter').value || '';
   item.image = document.getElementById('editItemImgUrl').value || item.image;
   DB.save('menuItems');
   DB.broadcast('menu_updated', {});
@@ -621,6 +675,197 @@ function saveMenuOrder() {
 }
 
 // ============================================================
+// INGREDIENTS (KIRIM MASALLIQLARI)
+// ============================================================
+const ING_UNIT_LABELS = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', dona: 'dona' };
+
+function loadIngredientsSection() {
+  renderIngredientsTable();
+  loadRecipeDropdowns();
+}
+
+function addIngredient() {
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const name = document.getElementById('ingName').value.trim();
+  const unit = document.getElementById('ingUnit').value;
+  const qty = parseFloat(document.getElementById('ingQty').value) || 0;
+  const price = parseInt(document.getElementById('ingPrice').value) || 0;
+  const errEl = document.getElementById('ingFormErr');
+  errEl.style.display = 'none';
+
+  if(!name) { errEl.textContent = 'Masalliq nomini kiriting'; errEl.style.display = 'block'; return; }
+  if(DB.ingredients.find(x => x.name.toLowerCase() === name.toLowerCase() && !x.deleted)) {
+    errEl.textContent = "Bu nomli masalliq allaqachon mavjud"; errEl.style.display = 'block'; return;
+  }
+
+  const ingredient = {
+    id: DB.nextId(DB.ingredients),
+    name, unit, qty, price,
+    deleted: false
+  };
+  DB.ingredients.push(ingredient);
+  DB.save('ingredients');
+  DB.broadcast('ingredients_updated', {});
+
+  document.getElementById('ingName').value = '';
+  document.getElementById('ingQty').value = '';
+  document.getElementById('ingPrice').value = '';
+  renderIngredientsTable();
+  loadRecipeDropdowns();
+  showToast(`"${name}" qo'shildi`);
+}
+
+function renderIngredientsTable() {
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const tbody = document.getElementById('ingredientsTableBody');
+  if(!tbody) return;
+
+  const items = DB.ingredients.filter(x => !x.deleted);
+  if(!items.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Masalliqlar yo\'q</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = items.map((ing, i) => {
+    const unitLabel = ING_UNIT_LABELS[ing.unit] || ing.unit;
+    const total = (ing.qty || 0) * (ing.price || 0);
+    return `
+      <tr data-id="${ing.id}">
+        <td>${i + 1}</td>
+        <td>${ing.name}</td>
+        <td>${ing.qty} ${unitLabel}</td>
+        <td>${formatPrice(ing.price)} so'm</td>
+        <td>${formatPrice(total)} so'm</td>
+        <td>
+          <div class="actions-cell admin-only">
+            <button class="btn-icon danger" onclick="deleteIngredient('${ing.id}')" title="O'chirish">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function deleteIngredient(id) {
+  if(!confirm("Masalliqni o'chirasizmi?")) return;
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const ing = DB.ingredients.find(x => String(x.id) === String(id));
+  if(!ing) return;
+  ing.deleted = true;
+  DB.save('ingredients');
+  DB.broadcast('ingredients_updated', {});
+  renderIngredientsTable();
+  showToast("Masalliq o'chirildi");
+}
+
+// ---- RETSEPT (masalliq — taom bog'lanishi) ----
+function loadRecipeDropdowns() {
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+
+  const dishSel = document.getElementById('recipeDishSelect');
+  const ingSel = document.getElementById('recipeIngSelect');
+  if(!dishSel || !ingSel) return;
+
+  const prevDish = dishSel.value;
+  dishSel.innerHTML = '<option value="">– Taomni tanlang –</option>';
+  DB.menuItems.filter(m => !m.deleted).forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id; opt.textContent = m.name;
+    dishSel.appendChild(opt);
+  });
+  if(prevDish) dishSel.value = prevDish;
+
+  ingSel.innerHTML = '<option value="">– Masalliqni tanlang –</option>';
+  DB.ingredients.filter(x => !x.deleted).forEach(ing => {
+    const opt = document.createElement('option');
+    opt.value = ing.id;
+    opt.textContent = `${ing.name} (${ING_UNIT_LABELS[ing.unit] || ing.unit})`;
+    ingSel.appendChild(opt);
+  });
+
+  loadDishRecipe();
+}
+
+function loadDishRecipe() {
+  const dishId = document.getElementById('recipeDishSelect').value;
+  const wrap = document.getElementById('recipeListWrap');
+  const tbody = document.getElementById('recipeTableBody');
+  if(!dishId) { wrap.style.display = 'none'; return; }
+
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const item = DB.menuItems.find(m => String(m.id) === String(dishId));
+  if(!item) { wrap.style.display = 'none'; return; }
+
+  const recipe = Array.isArray(item.recipe) ? item.recipe : [];
+  if(!recipe.length) {
+    wrap.style.display = 'block';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-dim)">Bu taom uchun retsept hali kiritilmagan</td></tr>';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  tbody.innerHTML = recipe.map(r => {
+    const ing = DB.ingredients.find(x => String(x.id) === String(r.ingredientId));
+    const ingName = ing ? ing.name : '(o\'chirilgan masalliq)';
+    const unitLabel = ing ? (ING_UNIT_LABELS[ing.unit] || ing.unit) : '';
+    return `
+      <tr>
+        <td>${ingName}</td>
+        <td>${r.qty} ${unitLabel}</td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn-icon danger" onclick="removeRecipeIngredient('${r.ingredientId}')" title="O'chirish">🗑️</button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function addRecipeIngredient() {
+  const dishId = document.getElementById('recipeDishSelect').value;
+  const ingredientId = document.getElementById('recipeIngSelect').value;
+  const qty = parseFloat(document.getElementById('recipeQty').value);
+  const errEl = document.getElementById('recipeFormErr');
+  errEl.style.display = 'none';
+
+  if(!dishId) { errEl.textContent = 'Avval taomni tanlang'; errEl.style.display = 'block'; return; }
+  if(!ingredientId) { errEl.textContent = 'Masalliqni tanlang'; errEl.style.display = 'block'; return; }
+  if(!qty || qty <= 0) { errEl.textContent = "Miqdorni to'g'ri kiriting"; errEl.style.display = 'block'; return; }
+
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  const item = DB.menuItems.find(m => String(m.id) === String(dishId));
+  if(!item) return;
+
+  if(!Array.isArray(item.recipe)) item.recipe = [];
+  const existing = item.recipe.find(r => String(r.ingredientId) === String(ingredientId));
+  if(existing) {
+    existing.qty = qty;
+  } else {
+    item.recipe.push({ ingredientId, qty });
+  }
+  DB.save('menuItems');
+
+  document.getElementById('recipeQty').value = '';
+  loadDishRecipe();
+  showToast('Retseptga qo\'shildi');
+}
+
+function removeRecipeIngredient(ingredientId) {
+  const dishId = document.getElementById('recipeDishSelect').value;
+  if(!dishId) return;
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  const item = DB.menuItems.find(m => String(m.id) === String(dishId));
+  if(!item || !Array.isArray(item.recipe)) return;
+  item.recipe = item.recipe.filter(r => String(r.ingredientId) !== String(ingredientId));
+  DB.save('menuItems');
+  loadDishRecipe();
+  showToast('Retseptdan olib tashlandi');
+}
+
+// ============================================================
 // KASSA
 // ============================================================
 function updateKassaBadge() {
@@ -632,69 +877,136 @@ function updateKassaBadge() {
 
 function loadKassa() {
   DB.checks = JSON.parse(localStorage.getItem('mc_checks') || '[]');
+  DB.tables = JSON.parse(localStorage.getItem('mc_tables') || JSON.stringify(_defaults.tables));
   
-  // Kassadagi va To'langan barcha cheklarni ko'rsatish
-  const kassaChecks = DB.checks.filter(c => c.status === 'kassa' || c.status === 'paid');
+  const grid = document.getElementById('kassaTablesGrid');
+  const panel = document.getElementById('kassaChecksPanel');
+  if(!grid) return;
   
-  // Sana bo'yicha kamayish tartibida saralash (eng yangisi tepada)
-  kassaChecks.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Har bir stol uchun unga tegishli "kassa" yoki "paid" statusidagi cheklar soni
+  const tableChecks = {};
+  DB.tables.forEach(t => {
+    tableChecks[t.id] = DB.checks.filter(c => c.tableId === t.id && (c.status === 'kassa' || c.status === 'paid'));
+  });
 
   updateKassaBadge();
-  const list = document.getElementById('kassaList');
-  if(!kassaChecks.length) {
-    list.innerHTML = '<div class="empty-state"><span>💳</span><p>Kassada chek yo\'q</p></div>';
+  
+  grid.innerHTML = '';
+  DB.tables.forEach(table => {
+    const chks = tableChecks[table.id] || [];
+    const card = document.createElement('div');
+    card.className = 'table-card';
+    card.onclick = () => selectTableForKassa(table.id, chks);
+    card.innerHTML = `
+      <div class="table-number">${table.id}</div>
+      <div class="table-status">${table.status === 'busy' ? 'Mashg\'ul' : 'Bo\'sh'}</div>
+      <div class="table-count">${chks.length} chek</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+let currentKassaTableId = null;
+
+function selectTableForKassa(tableId, checks) {
+  currentKassaTableId = tableId;
+  const panel = document.getElementById('kassaChecksPanel');
+  const grid = document.getElementById('kassaTablesGrid');
+  const title = document.getElementById('kassaTableTitle');
+  const list = document.getElementById('kassaChecksList');
+  
+  // Active stol tagiga alohida rang berish
+  document.querySelectorAll('.table-card').forEach(c => c.classList.remove('active'));
+  event.target.closest('.table-card').classList.add('active');
+  
+  panel.style.display = 'block';
+  title.textContent = `Stol ${tableId} — Cheklar (${checks.length} ta)`;
+  
+  if(!checks.length) {
+    list.innerHTML = '<div class="empty-state"><span>📋</span><p>Bu stol uchun chek yo\'q</p></div>';
     return;
   }
+  
+  checks.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   list.innerHTML = '';
-  kassaChecks.forEach(chk => {
+  
+  checks.forEach(chk => {
     const div = document.createElement('div');
     div.className = 'kassa-card';
     const ts = new Date(chk.createdAt);
-    const tsStr = ts.toLocaleDateString('uz-UZ') + ' ' + ts.toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit'});
+    const tsStr = ts.toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit'});
+    const statusBadge = chk.status === 'kassa' 
+      ? '<span style="color:var(--warn);font-size:12px;font-weight:700">To\'lov kutilmoqda 🕒</span>'
+      : '<span style="color:var(--accent);font-size:12px;font-weight:700">To\'langan ✓</span>';
     
-    let buttonsHtml = '';
-    let statusLabel = '';
-    
-    if(chk.status === 'kassa') {
-      statusLabel = '<span style="color:var(--warn); font-size:12px; font-weight:700;">To\'lov kutilmoqda 🕒</span>';
-      buttonsHtml = `
-        <button class="btn-preview-check" style="border-color:var(--warn); color:var(--warn);" onclick="freeTableAndPay(${chk.id})">🧹 Stolni bo'shatish</button>
-        <button class="btn-preview-check" onclick="printReceiptDirect(${chk.id})">🖨️ Chop etish</button>
-      `;
-    } else {
-      statusLabel = '<span style="color:var(--accent); font-size:12px; font-weight:700;">To\'langan / Bo\'shatilgan ✓</span>';
-      buttonsHtml = `
-        <button class="btn-preview-check" onclick="printReceiptDirect(${chk.id})">🖨️ Chop etish</button>
-      `;
-    }
-
     div.innerHTML = `
       <div class="kassa-card-head">
         <div>
-          <h3>📍 ${chk.tableName} &nbsp; ${statusLabel}</h3>
+          <h3>${chk.tableName} &nbsp; ${statusBadge}</h3>
           <p>${tsStr} · ${chk.guestCount} kishi · ${chk.waiterName}</p>
         </div>
-        <div style="display:flex; gap:8px;">
-          ${buttonsHtml}
-        </div>
       </div>
-      <div class="kassa-items">
-        ${chk.items.map(item => `
-          <div class="kassa-item-row">
-            <span>${item.name}</span>
-            <span>${item.qty}x${formatPrice(item.price)} = ${formatPrice(item.qty*item.price)} so'm</span>
-          </div>
-        `).join('')}
+      <div class="kassa-check-items">
+        ${(chk.items || []).map(i => `<div class="check-item-row">• ${i.name} x${i.qty} = ${formatPrice(i.price * i.qty)} so'm</div>`).join('')}
       </div>
-      <div class="kassa-card-foot">
-        <span>${chk.guestCount} kishi</span>
-        <span class="kassa-total">${formatPrice(chk.totalPrice)} so'm</span>
+      <div class="kassa-check-total">
+        Jami: <strong>${formatPrice(chk.totalPrice)} so'm</strong>
       </div>
+      ${chk.status === 'kassa' ? `<button class="btn-primary" onclick="openPaymentModal(${chk.id})" style="width:100%;margin-top:10px">💰 To'lov Qabul Qilish</button>` : ''}
     `;
     list.appendChild(div);
   });
 }
 
+function kassaDeselectTable() {
+  document.getElementById('kassaChecksPanel').style.display = 'none';
+  document.querySelectorAll('.table-card').forEach(c => c.classList.remove('active'));
+  currentKassaTableId = null;
+}
+
+let paymentCheckId = null;
+
+function openPaymentModal(checkId) {
+  DB.checks = JSON.parse(localStorage.getItem('mc_checks') || '[]');
+  const chk = DB.checks.find(c => c.id === checkId);
+  if(!chk) return;
+  
+  paymentCheckId = checkId;
+  document.getElementById('payAmount').textContent = formatPrice(chk.totalPrice);
+  document.getElementById('payItemCount').textContent = (chk.items || []).length;
+  document.getElementById('paymentModal').style.display = 'flex';
+}
+
+function closePaymentModal() {
+  document.getElementById('paymentModal').style.display = 'none';
+  paymentCheckId = null;
+}
+
+function confirmPayment(method) {
+  if(!paymentCheckId) return;
+  DB.checks = JSON.parse(localStorage.getItem('mc_checks') || '[]');
+  const chk = DB.checks.find(c => c.id === paymentCheckId);
+  if(!chk) return;
+  
+  // To'lovni qaysi turda amalga oshirilganini yozish
+  chk.paymentMethod = method;
+  chk.status = 'paid';
+  chk.paidAt = new Date().toISOString();
+  deductIngredientsForCheck(chk);
+  DB.save('checks');
+  
+  const methods = { cash: 'Naqd', card: 'Karta', transfer: "Pul o'tkazma", mixed: 'Aralash' };
+  showToast(`✓ To'lov qabul qilindi (${methods[method]}). Chek chiqarildi.`);
+  simulatePrint(chk);
+  
+  closePaymentModal();
+  DB.setTableStatus(chk.tableId, 'free');
+  loadKassa();
+  updateKassaBadge();
+}
+
+
+// ===
 function freeTableAndPay(checkId) {
   DB.checks = JSON.parse(localStorage.getItem('mc_checks') || '[]');
   const chk = DB.checks.find(c => c.id === checkId);
@@ -702,6 +1014,7 @@ function freeTableAndPay(checkId) {
 
   chk.status = 'paid';
   chk.paidAt = new Date().toISOString();
+  deductIngredientsForCheck(chk);
   DB.save('checks');
   
   DB.setTableStatus(chk.tableId, 'free');
@@ -757,12 +1070,39 @@ function printReceipt() {
   // Mark as paid
   chk.status = 'paid';
   chk.paidAt = new Date().toISOString();
+  deductIngredientsForCheck(chk);
   DB.save('checks');
   simulatePrint(chk);
   closeKassaCheck();
   loadKassa();
   updateKassaBadge();
   showToast('Chek chiqarildi ✓');
+}
+
+// Retsept bo'yicha taom sotilganda masalliqlar miqdorini ombordan ayiradi.
+// Har bir chek faqat bir marta ayiriladi (chk.stockDeducted bilan himoyalangan).
+function deductIngredientsForCheck(chk) {
+  if(chk.stockDeducted) return;
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  let changed = false;
+
+  (chk.items || []).forEach(chkItem => {
+    if(!chkItem.menuItemId || chkItem.menuItemId === 'service_fee') return;
+    const menuItem = DB.menuItems.find(m => String(m.id) === String(chkItem.menuItemId));
+    if(!menuItem || !Array.isArray(menuItem.recipe) || !menuItem.recipe.length) return;
+
+    menuItem.recipe.forEach(r => {
+      const ing = DB.ingredients.find(x => String(x.id) === String(r.ingredientId));
+      if(!ing) return;
+      const usedQty = (Number(r.qty) || 0) * (Number(chkItem.qty) || 0);
+      ing.qty = Math.max(0, (Number(ing.qty) || 0) - usedQty);
+      changed = true;
+    });
+  });
+
+  if(changed) DB.save('ingredients');
+  chk.stockDeducted = true;
 }
 
 function buildPrintRows(items) {
@@ -896,6 +1236,11 @@ function print58mmReceipt(chk, rows) {
   }, 150);
 }
 
+// Kassa kompyuterida lokal ishlaydigan "print-bridge" server manzili.
+// 127.0.0.1 (localhost) har doim "ishonchli manzil" hisoblanadi, shuning
+// uchun HTTPS sahifadan ham brauzer uni hech qachon bloklamaydi.
+const PRINT_BRIDGE_URL = 'http://127.0.0.1:8787';
+
 function simulatePrint(chk) {
   const rows = buildPrintRows(chk.items);
   print58mmReceipt(chk, rows);
@@ -928,11 +1273,14 @@ function simulatePrint(chk) {
   };
 
   console.log(`[PRINT REQUEST to KASSA IP: ${ip}]`, JSON.stringify(printData, null, 2));
-  fetch(`http://${ip}/print`, {
+  fetch(`${PRINT_BRIDGE_URL}/print?ip=${encodeURIComponent(ip)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(printData)
-  }).catch(e => console.warn('[KASSA PRINTER] Ulanish xatosi:', e.message));
+  }).catch(e => {
+    console.warn('[KASSA PRINTER] Bridge orqali ulanish xatosi:', e.message);
+    showToast('⚠️ Print-bridge dastur ishlamayapti. "node print-bridge.js" ni ishga tushiring.');
+  });
 }
 
 // ============================================================
@@ -1008,6 +1356,7 @@ function loadWaiters() {
         <div class="waiter-info">
           <h4>${w.name} ${w.surname}</h4>
           <p>@${w.login}</p>
+          <p style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px">${w.role === 'cashier' ? 'Kassir' : 'Ofisant'}</p>
           <p class="waiter-stats">Bugun: ${todayCount} mijoz</p>
         </div>
       </div>
@@ -1026,6 +1375,7 @@ function addWaiter() {
   const surname = document.getElementById('wLastName').value.trim();
   const login = document.getElementById('wLogin').value.trim();
   const pass = document.getElementById('wPass').value;
+  const role = document.getElementById('wRole') ? document.getElementById('wRole').value : 'waiter';
   const errEl = document.getElementById('waiterFormErr');
   errEl.style.display = 'none';
   if(!name||!surname||!login||!pass) { errEl.textContent='Barcha maydonlarni to\'ldiring'; errEl.style.display='block'; return; }
@@ -1046,6 +1396,19 @@ function openEditWaiter(id) {
   document.getElementById('ewLast').value = w.surname;
   document.getElementById('ewLogin').value = w.login;
   document.getElementById('ewPass').value = w.password;
+  document.getElementById('ewRole').value = w.role === 'cashier' ? 'cashier' : 'waiter';
+
+  // Qurilma-qulfi holati (faqat ofisant/kassir uchun mantiqli - admin uchun ko'rsatilmaydi)
+  const statusBox = document.getElementById('ewDeviceStatus');
+  const statusText = document.getElementById('ewDeviceStatusText');
+  if(w.activeDeviceId) {
+    statusBox.style.display = 'block';
+    statusText.textContent = `🔒 Ushbu hisob hozir bitta qurilmada band (${w.deviceBoundAt ? new Date(w.deviceBoundAt).toLocaleString('uz-UZ') : 'vaqt noma\'lum'})`;
+  } else {
+    statusBox.style.display = 'block';
+    statusText.textContent = '🔓 Hech qanday qurilmaga bog\'lanmagan';
+  }
+
   document.getElementById('editWaiterModal').classList.add('active');
 }
 
@@ -1062,19 +1425,34 @@ function saveEditWaiter() {
   w.surname = document.getElementById('ewLast').value.trim();
   w.login = newLogin;
   w.password = document.getElementById('ewPass').value;
+  w.role = document.getElementById('ewRole').value;
   DB.save('waiters');
   closeEditWaiter();
   loadWaiters();
-  showToast('Ofisant yangilandi');
+  showToast('Xodim yangilandi');
+}
+
+// Xodimning telefoniga bog'langan qulfni admin tomonidan qo'lda bo'shatish
+// (masalan, telefon almashtirilganda yoki yo'qolganda kerak bo'ladi)
+function unbindWaiterDevice() {
+  const id = parseInt(document.getElementById('editWaiterId').value);
+  DB.waiters = JSON.parse(localStorage.getItem('mc_waiters') || '[]');
+  const w = DB.waiters.find(x => x.id===id);
+  if(!w) return;
+  delete w.activeDeviceId;
+  delete w.deviceBoundAt;
+  DB.save('waiters');
+  showToast('Qurilma qulfi bo\'shatildi ✓');
+  openEditWaiter(id); // statusni yangilash
 }
 
 function deleteWaiter(id) {
-  if(!confirm("Ofisantni o'chirasizmi?")) return;
+  if(!confirm("Xodimni o'chirasizmi?")) return;
   DB.waiters = JSON.parse(localStorage.getItem('mc_waiters') || '[]');
   DB.waiters = DB.waiters.filter(w => w.id!==id);
   DB.save('waiters');
   loadWaiters();
-  showToast('Ofisant o\'chirildi');
+  showToast('Xodim o\'chirildi');
 }
 
 function saveServiceFee() {
@@ -1098,6 +1476,9 @@ function setupRealtime() {
     }
     if(key === 'waiters' && isReportsOpen()) {
       loadReport();
+    }
+    if(key === 'ingredients' && document.getElementById('sectionIngredients').classList.contains('active')) {
+      renderIngredientsTable();
     }
   });
   // localStorage real-time (bir xil qurilmadagi boshqa tablar)
@@ -1244,46 +1625,31 @@ async function pingSingle(type) {
   }
 
   setPrinterStatus(type, 'pinging');
-  const t0 = Date.now();
 
   try {
-    // XPrinter HTTP serveriga /status GET so'rovi yubor (timeout: 3s)
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`http://${ip}/status`, {
+    const res = await fetch(`${PRINT_BRIDGE_URL}/ping?ip=${encodeURIComponent(ip.trim())}`, {
       method: 'GET',
-      signal: controller.signal,
-      mode: 'no-cors'  // CORS yo'q bo'lishi mumkin, lekin ulanish tekshiriladi
+      signal: controller.signal
     });
     clearTimeout(timer);
-    const latency = Date.now() - t0;
-    // no-cors rejimida res.ok bo'lmaydi, lekin xato yo'q = ulanish bor
-    setPrinterStatus(type, 'online', latency);
-    showToast(`✅ ${label} onlayn (${latency}ms)`);
-  } catch(e) {
-    if(e.name === 'AbortError') {
-      setPrinterStatus(type, 'offline');
-      showToast(`❌ ${label}: Javob bermadi (timeout)`);
+    if(!res.ok) throw new Error('bridge_bad_response');
+    const data = await res.json();
+
+    if(data.online) {
+      setPrinterStatus(type, 'online', data.latency);
+      showToast(`✅ ${label} onlayn (${data.latency}ms)`);
     } else {
-      // Network xato = printer o'chiq yoki noto'g'ri IP
-      // Biroq no-cors bilan ba'zi printerlar xato bermaydi — qo'shimcha test
-      // /print endpointiga ham urinib ko'ramiz
-      try {
-        const controller2 = new AbortController();
-        const timer2 = setTimeout(() => controller2.abort(), 3000);
-        await fetch(`http://${ip}/print`, {
-          method: 'GET',
-          signal: controller2.signal,
-          mode: 'no-cors'
-        });
-        clearTimeout(timer2);
-        const latency = Date.now() - t0;
-        setPrinterStatus(type, 'online', latency);
-        showToast(`✅ ${label} onlayn (${latency}ms)`);
-      } catch(e2) {
-        setPrinterStatus(type, 'offline');
-        showToast(`❌ ${label}: Ulanib bo'lmadi`);
-      }
+      setPrinterStatus(type, 'offline');
+      showToast(`❌ ${label}: Printer javob bermadi`);
+    }
+  } catch(e) {
+    setPrinterStatus(type, 'offline');
+    if(e.name === 'AbortError') {
+      showToast(`❌ ${label}: Bridge server javob bermadi (timeout)`);
+    } else {
+      showToast(`⚠️ Print-bridge dastur ishlamayapti. Kassa kompyuterida "node print-bridge.js" ni ishga tushiring.`);
     }
   }
 }

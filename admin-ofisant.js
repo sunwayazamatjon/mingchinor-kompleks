@@ -18,12 +18,34 @@ let currentCatId = 'all';
 let currentAddFunc = 'updateZakazCart';
 let isAddingToOrder = false;
 
+// ---- QURILMA IDENTIFIKATORI (bitta hisob — bitta qurilma) ----
+// Har bir telefon/brauzer uchun tasodifiy, doimiy ID yaratiladi va
+// localStorage'da saqlanadi. Bu ID orqali "qaysi qurilma hozir shu
+// hisobga kirgan" ekanligi aniqlanadi.
+function getDeviceId() {
+  let id = localStorage.getItem('mc_device_id');
+  if(!id) {
+    id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12);
+    localStorage.setItem('mc_device_id', id);
+  }
+  return id;
+}
+
 // ---- INIT ----
 window.addEventListener('mc:db_ready', () => {
   const saved = localStorage.getItem('mc_waiter_session');
   if(saved) {
     currentWaiter = JSON.parse(saved);
-    showPanel();
+    // Sessiya tiklanganda ham qurilma hali ham shu hisobga bog'liqligini tekshiramiz
+    DB.waiters = JSON.parse(localStorage.getItem('mc_waiters') || '[]');
+    const w = DB.waiters.find(x => x.id === currentWaiter.id);
+    if(w && w.activeDeviceId && w.activeDeviceId !== getDeviceId()) {
+      // Boshqa qurilma bu hisobni egallab olgan — sessiyani tugatamiz
+      currentWaiter = null;
+      localStorage.removeItem('mc_waiter_session');
+    } else {
+      showPanel();
+    }
   }
   setupRealtime();
 });
@@ -38,6 +60,18 @@ function doLogin() {
     showLoginError("Login yoki parol noto'g'ri");
     return;
   }
+
+  const myDeviceId = getDeviceId();
+  if(waiter.activeDeviceId && waiter.activeDeviceId !== myDeviceId) {
+    showLoginError("Bu hisob hozir boshqa telefonda ochiq. Admin bilan bog'laning yoki avval o'sha qurilmadan chiqing.");
+    return;
+  }
+
+  // Hisobni shu qurilmaga bog'laymiz
+  waiter.activeDeviceId = myDeviceId;
+  waiter.deviceBoundAt = new Date().toISOString();
+  DB.save('waiters');
+
   currentWaiter = waiter;
   localStorage.setItem('mc_waiter_session', JSON.stringify(waiter));
   showPanel();
@@ -50,6 +84,16 @@ function showLoginError(msg) {
 }
 
 function doLogout() {
+  // Qurilma qulfini bo'shatamiz — shu login boshqa telefonda ham kira oladi
+  if(currentWaiter) {
+    DB.waiters = JSON.parse(localStorage.getItem('mc_waiters') || '[]');
+    const w = DB.waiters.find(x => x.id === currentWaiter.id);
+    if(w && w.activeDeviceId === getDeviceId()) {
+      delete w.activeDeviceId;
+      delete w.deviceBoundAt;
+      DB.save('waiters');
+    }
+  }
   currentWaiter = null;
   localStorage.removeItem('mc_waiter_session');
   document.getElementById('loginScreen').style.display = 'flex';
@@ -266,24 +310,45 @@ function printKitchenTickets(order, itemsToPrint) {
   const ips = JSON.parse(localStorage.getItem('mc_printer_ips') || '{}');
   const binds = JSON.parse(localStorage.getItem('mc_printer_binds') || '{"milliy":[],"kabob":[],"baliq":[]}');
   
-  // Find which items go to which printer based on bindings
-  const printerGroups = { milliy: [], kabob: [], baliq: [], unbound: [] };
+  // Find which items go to which printer:
+  // 1. Agar taom o'zining printerTarget'i bo'lsa (taom qo'shishda tanlangan) — shu printer'ga
+  // 2. Aks holda — kategoriya bo'ylab bindings'dan topish
+  const printerGroups = { kassa: [], milliy: [], kabob: [], baliq: [], unbound: [] };
 
   itemsToPrint.forEach(item => {
     // service_fee va shunga o'xshash texnik yozuvlarni o'tkazib yuborish
     if(!item.menuItemId || item.categoryId === 'service') return;
+    
+    // Menyu to'liq ma'lumotlarini topamiz (printerTarget bilishi uchun)
+    DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+    const menuItem = DB.menuItems.find(m => String(m.id) === String(item.menuItemId));
+    
     let boundTo = null;
-    ['milliy', 'kabob', 'baliq'].forEach(ptype => {
-      if(binds[ptype] && binds[ptype].includes(String(item.categoryId))) boundTo = ptype;
-    });
+    if(menuItem && menuItem.printerTarget) {
+      // Taom qo'shganda direct printer tanlangan
+      boundTo = menuItem.printerTarget;
+    } else {
+      // Kategoriya object'ining printerTarget'ini tekshiramiz
+      DB.categories = JSON.parse(localStorage.getItem('mc_categories') || '[]');
+      const cat = DB.categories.find(c => c.id === item.categoryId);
+      if(cat && cat.printerTarget) {
+        boundTo = cat.printerTarget;
+      } else {
+        // Legacy: eski bindings'dan qidirash
+        ['milliy', 'kabob', 'baliq'].forEach(ptype => {
+          if(binds[ptype] && binds[ptype].includes(String(item.categoryId))) boundTo = ptype;
+        });
+      }
+    }
+    
     if(boundTo) printerGroups[boundTo].push(item);
     else printerGroups.unbound.push(item);
   });
 
-  const ptypeLabels = { milliy: 'Milliy Taomlar', kabob: 'Kabobxona', baliq: 'Baliqxona' };
+  const ptypeLabels = { kassa: 'Kassa', milliy: 'Milliy Taomlar', kabob: 'Kabobxona', baliq: 'Baliqxona' };
 
-  // Print to each bound printer
-  ['milliy', 'kabob', 'baliq'].forEach(ptype => {
+  // Print to each printer
+  ['kassa', 'milliy', 'kabob', 'baliq'].forEach(ptype => {
     if(!printerGroups[ptype].length) return;
     const ip = ips[ptype];
     if(!ip) {
@@ -1114,6 +1179,18 @@ function setupRealtime() {
     if(key === 'waiterCalls') {
       playBeep(2);
       loadCalls();
+    }
+    if(key === 'waiters') {
+      // Boshqa qurilma shu hisobni egallab olganini tekshiramiz
+      DB.waiters = JSON.parse(localStorage.getItem('mc_waiters') || '[]');
+      const w = DB.waiters.find(x => x.id === currentWaiter.id);
+      if(w && w.activeDeviceId && w.activeDeviceId !== getDeviceId()) {
+        currentWaiter = null;
+        localStorage.removeItem('mc_waiter_session');
+        document.getElementById('loginScreen').style.display = 'flex';
+        document.getElementById('mainPanel').style.display = 'none';
+        showLoginError('Sizning hisobingiz boshqa qurilmada ochildi. Iltimos, qayta kiring.');
+      }
     }
   });
   // localStorage real-time (bir xil qurilmadagi boshqa tablar)
