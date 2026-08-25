@@ -195,51 +195,158 @@
         <h2>🥬 Kirim Masalliqlari</h2>
       </div>
 
-      <!-- Add Ingredient Form -->
-      <div class="card form-card admin-only">
-        <h3>Yangi Masalliq Qo'shish</h3>
+      <div class="ingredients-layout">
+        <!-- CHAP: KATEGORIYALAR FILTERI -->
+        <div class="ingredients-left">
+          <div class="card">
+            <h3>Kategoriyalar</h3>
+            <div class="cat-filter" id="ingredientCategoryFilter">
+              <button class="cat-filter-btn active" data-cat="all">Barchasi</button>
+              <button class="cat-filter-btn" data-cat="liquids">💧 Suvlar</button>
+              <button class="cat-filter-btn" data-cat="sweets">🍬 Shirinliklar</button>
+              <button class="cat-filter-btn" data-cat="bread">🍞 Non</button>
+              <button class="cat-filter-btn" data-cat="weight">⚖️ Vazn (kg/g)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MARKAZIY: MASALLIQLAR RO'YXATI -->
+        <div class="ingredients-center">
+          <div class="card">
+            <h3>Masalliqlar</h3>
+            <div id="ingredientsGridContainer" class="ingredients-grid"></div>
+          </div>
+        </div>
+
+        <!-- O'NG: PRIXOD QABUL QILISH -->
+        <div class="ingredients-right">
+          <div class="card form-card admin-only">
+            <h3>📥 Prixod Qabul Qilish</h3>
+            <small style="color:var(--text-dim);display:block;margin-bottom:12px">Yangi stock kiritish</small>
+            <div class="field-group">
+              <label>Masalliq</label>
+              <select id="prixodMasalliq">
+                <option value="">– Masalliqni tanlang –</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label>Miqdor</label>
+              <input type="number" id="prixodQty" placeholder="0" step="any">
+            </div>
+            <div class="field-group">
+              <label>Narx (so'm)</label>
+              <input type="number" id="prixodPrice" placeholder="0">
+            </div>
+            <div id="prixodFormErr" class="form-error" style="display:none"></div>
+            <button class="btn-primary" onclick="addPrixod()" style="width:100%">Qabul Qilish</button>
+          </div>
+
+          <!-- DONALIK MAXSULOTLAR -->
+          <div class="card form-card admin-only">
+            <h3>💧 Donalik Maxsulot</h3>
+            <small style="color:var(--text-dim);display:block;margin-bottom:12px">Suvlar, shirinliklar, non</small>
+            <div class="field-group">
+              <label>Nomi</label>
+              <input type="text" id="productName" placeholder="Coca-Cola, Pechenie...">
+            </div>
+            <div class="field-group">
+              <label>Miqdor (dona)</label>
+              <input type="number" id="productQty" placeholder="0" step="any">
+            </div>
+            <div class="field-group">
+              <label>Narx (so'm)</label>
+              <input type="number" id="productPrice" placeholder="0">
+            </div>
+            <div id="productFormErr" class="form-error" style="display:none"></div>
+            <button class="btn-primary" onclick="addProduct()" style="width:100%">Qo'shish</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASTGI: RETSEPT QILISH VA TAHRIRLASH -->
+      <div class="card" style="margin-top:24px">
+        <h3>Taomga Retsept Biriktirish</h3>
         <div class="form-grid">
           <div class="field-group">
-            <label>Masalliq nomi</label>
-            <input type="text" id="ingName" placeholder="Masalan: Guruch, Go'sht, Piyoz...">
-          </div>
-          <div class="field-group">
-            <label>O'lchov birligi</label>
-            <select id="ingUnit">
-              <option value="kg">Kilogramm (kg)</option>
-              <option value="g">Gramm (g)</option>
-              <option value="l">Litr (l)</option>
-              <option value="ml">Millilitr (ml)</option>
-              <option value="dona">Dona</option>
+            <label>Taom</label>
+            <select id="dishRecipeSelect" onchange="loadDishRecipe()">
+              <option value="">– Taom tanlang –</option>
             </select>
           </div>
           <div class="field-group">
-            <label>Miqdori (kirim)</label>
-            <input type="number" id="ingQty" placeholder="0" step="any">
+            <label>Masalliq</label>
+            <select id="recipeIngredientSelect">
+              <option value="">– Masalliq tanlang –</option>
+            </select>
           </div>
           <div class="field-group">
-            <label>Birlik narxi (so'm)</label>
-            <input type="number" id="ingPrice" placeholder="0">
+            <label>Miqdor</label>
+            <input type="number" id="recipeQtyInput" placeholder="0" step="any">
+          </div>
+          <div class="field-group">
+            <button class="btn-primary" onclick="addRecipeIngredient()">Qo'shish</button>
           </div>
         </div>
-        <div id="ingFormErr" class="form-error" style="display:none"></div>
-        <button class="btn-primary" onclick="addIngredient()">+ Masalliq Qo'shish</button>
-      </div>
 
-      <!-- Ingredients Table -->
-      <div class="card">
-        <h3>Barcha Masalliqlar</h3>
+        <!-- RETSEPTDA QO'SHILGAN MASALLIQLAR -->
+        <h4 style="margin-top:16px">Tanlangan Taomning Retsepti:</h4>
         <div class="table-responsive">
-          <table class="data-table" id="ingredientsTable">
+          <table class="data-table" id="recipeIngredientsTable">
             <thead>
-              <tr><th>№</th><th>Nomi</th><th>Miqdori</th><th>Birlik narxi</th><th>Jami qiymati</th><th>Amallar</th></tr>
+              <tr><th>Masalliq</th><th>Miqdor</th><th>Birlik</th><th>Amallar</th></tr>
             </thead>
-            <tbody id="ingredientsTableBody"></tbody>
+            <tbody id="recipeIngredientsBody"></tbody>
           </table>
+        </div>
+        <small style="color:var(--text-dim);display:block;margin-top:8px">💡 Taom sotilganda, bu masalliqlardan avtomatik ayriladi</small>
+      </div>
+    </section>
+
+          <!-- PASTGI: MASALLIQLAR (kg/g/l/ml) -->
+          <div class="card form-card admin-only">
+            <h3>🧂 Masalliqlar (Kg/G/L/Ml)</h3>
+            <div class="form-grid">
+              <div class="field-group">
+                <label>Masalliq nomi</label>
+                <input type="text" id="ingName" placeholder="Guruch, Go'sht, Piyoz...">
+              </div>
+              <div class="field-group">
+                <label>Birlik</label>
+                <select id="ingUnit">
+                  <option value="kg">Kilogramm (kg)</option>
+                  <option value="g">Gramm (g)</option>
+                  <option value="l">Litr (l)</option>
+                  <option value="ml">Millilitr (ml)</option>
+                </select>
+              </div>
+              <div class="field-group">
+                <label>Miqdor</label>
+                <input type="number" id="ingQty" placeholder="0" step="any">
+              </div>
+              <div class="field-group">
+                <label>Birlik narxi (so'm)</label>
+                <input type="number" id="ingPrice" placeholder="0">
+              </div>
+            </div>
+            <div id="ingFormErr" class="form-error" style="display:none"></div>
+            <button class="btn-primary" onclick="addIngredient()">+ Qo'shish</button>
+          </div>
+
+          <div class="card">
+            <h3>Masalliqlar Jadva</h3>
+            <div class="table-responsive">
+              <table class="data-table" id="ingredientsTable">
+                <thead>
+                  <tr><th>Nomi</th><th>Miqdori</th><th>Birlik narxi</th><th>Jami</th><th>Amallar</th></tr>
+                </thead>
+                <tbody id="ingredientsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Recipe Builder -->
+      <!-- PASTGI: RETSEPT BIRIKTIRISH -->
       <div class="card form-card admin-only">
         <h3>🧾 Taomga Retsept Biriktirish</h3>
         <div class="form-grid">
@@ -268,7 +375,7 @@
           <div class="table-responsive">
             <table class="data-table" id="recipeTable">
               <thead>
-                <tr><th>Masalliq</th><th>Miqdori (1 taomga)</th><th>Amallar</th></tr>
+                <tr><th>Masalliq</th><th>Miqdori</th><th>Amallar</th></tr>
               </thead>
               <tbody id="recipeTableBody"></tbody>
             </table>

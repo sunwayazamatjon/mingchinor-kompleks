@@ -680,8 +680,69 @@ function saveMenuOrder() {
 const ING_UNIT_LABELS = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', dona: 'dona' };
 
 function loadIngredientsSection() {
-  renderIngredientsTable();
+  renderIngredientsGrid('all');
   loadRecipeDropdowns();
+  loadDishRecipe();
+  
+  // Category filter buttons
+  document.querySelectorAll('#ingredientCategoryFilter .cat-filter-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('#ingredientCategoryFilter .cat-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const cat = btn.dataset.cat;
+      renderIngredientsGrid(cat);
+    });
+  });
+}
+
+function getIngredientCategory(ing) {
+  // Determine category based on unit or name patterns
+  if(['dona', 'piece', 'sht'].includes(ing.unit)) {
+    if(ing.name.toLowerCase().includes('suv') || ing.name.toLowerCase().includes('ichimlik') || ing.name.toLowerCase().includes('cola') || ing.name.toLowerCase().includes('pepsi')) {
+      return 'liquids';
+    }
+    if(ing.name.toLowerCase().includes('shokolad') || ing.name.toLowerCase().includes('shirinlik') || ing.name.toLowerCase().includes('konfet') || ing.name.toLowerCase().includes('halva')) {
+      return 'sweets';
+    }
+    if(ing.name.toLowerCase().includes('non') || ing.name.toLowerCase().includes('chor') || ing.name.toLowerCase().includes('pechenie')) {
+      return 'bread';
+    }
+    return 'weight';
+  }
+  return 'weight';
+}
+
+function renderIngredientsGrid(category = 'all') {
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const grid = document.getElementById('ingredientsGridContainer');
+  if(!grid) return;
+  
+  const items = DB.ingredients.filter(x => !x.deleted);
+  
+  let filtered = items;
+  if(category !== 'all') {
+    filtered = items.filter(ing => getIngredientCategory(ing) === category);
+  }
+  
+  if(!filtered.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text-dim)">Bu kategoriyada masalliqlar yo\'q</div>';
+    return;
+  }
+  
+  grid.innerHTML = filtered.map(ing => {
+    const unitLabel = ING_UNIT_LABELS[ing.unit] || ing.unit;
+    return `
+      <div class="ingredient-card">
+        <h4>${ing.name}</h4>
+        <div class="qty">${ing.qty} ${unitLabel}</div>
+        <div class="unit">₹ ${ing.price}</div>
+        <div style="margin-top:8px;display:flex;gap:4px;justify-content:center">
+          <button class="btn-small" onclick="editIngredient(${ing.id})" style="flex:1">✏️</button>
+          <button class="btn-small" onclick="deleteIngredient(${ing.id})" style="flex:1;background:var(--danger-dim);color:var(--danger)">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function addIngredient() {
@@ -746,6 +807,24 @@ function renderIngredientsTable() {
   }).join('');
 }
 
+function editIngredient(id) {
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const ing = DB.ingredients.find(x => String(x.id) === String(id));
+  if(!ing) return;
+  
+  const newQty = prompt(`Yangi miqdor (hozir: ${ing.qty}):`, ing.qty);
+  if(newQty === null) return;
+  
+  const qty = parseFloat(newQty) || 0;
+  if(qty < 0) { showToast('Miqdor manfiy bo\'la olmaydi', 'error'); return; }
+  
+  ing.qty = qty;
+  DB.save('ingredients');
+  DB.broadcast('ingredients_updated', {});
+  renderIngredientsGrid('all');
+  showToast('Masalliq yangilandi');
+}
+
 function deleteIngredient(id) {
   if(!confirm("Masalliqni o'chirasizmi?")) return;
   DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
@@ -754,7 +833,7 @@ function deleteIngredient(id) {
   ing.deleted = true;
   DB.save('ingredients');
   DB.broadcast('ingredients_updated', {});
-  renderIngredientsTable();
+  renderIngredientsGrid('all');
   showToast("Masalliq o'chirildi");
 }
 
@@ -788,24 +867,21 @@ function loadRecipeDropdowns() {
 }
 
 function loadDishRecipe() {
-  const dishId = document.getElementById('recipeDishSelect').value;
-  const wrap = document.getElementById('recipeListWrap');
-  const tbody = document.getElementById('recipeTableBody');
-  if(!dishId) { wrap.style.display = 'none'; return; }
+  const dishId = document.getElementById('dishRecipeSelect').value;
+  const tbody = document.getElementById('recipeIngredientsBody');
+  if(!dishId) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-dim)">Taom tanlang</td></tr>'; return; }
 
   DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
   DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
   const item = DB.menuItems.find(m => String(m.id) === String(dishId));
-  if(!item) { wrap.style.display = 'none'; return; }
+  if(!item) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-dim)">Taom topilmadi</td></tr>'; return; }
 
   const recipe = Array.isArray(item.recipe) ? item.recipe : [];
   if(!recipe.length) {
-    wrap.style.display = 'block';
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:16px;color:var(--text-dim)">Bu taom uchun retsept hali kiritilmagan</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--text-dim)">Bu taom uchun retsept hali kiritilmagan</td></tr>';
     return;
   }
 
-  wrap.style.display = 'block';
   tbody.innerHTML = recipe.map(r => {
     const ing = DB.ingredients.find(x => String(x.id) === String(r.ingredientId));
     const ingName = ing ? ing.name : '(o\'chirilgan masalliq)';
@@ -813,10 +889,11 @@ function loadDishRecipe() {
     return `
       <tr>
         <td>${ingName}</td>
-        <td>${r.qty} ${unitLabel}</td>
+        <td><input type="number" value="${r.qty}" step="any" onchange="updateRecipeQty(${dishId}, '${r.ingredientId}', this.value)" style="width:70px;padding:4px;border:1px solid var(--border);border-radius:4px"></td>
+        <td>${unitLabel}</td>
         <td>
           <div class="actions-cell">
-            <button class="btn-icon danger" onclick="removeRecipeIngredient('${r.ingredientId}')" title="O'chirish">🗑️</button>
+            <button class="btn-icon" onclick="removeRecipeIngredient(${dishId}, '${r.ingredientId}')" title="O'chirish" style="background:var(--danger-dim);color:var(--danger)">🗑️</button>
           </div>
         </td>
       </tr>
@@ -825,15 +902,13 @@ function loadDishRecipe() {
 }
 
 function addRecipeIngredient() {
-  const dishId = document.getElementById('recipeDishSelect').value;
-  const ingredientId = document.getElementById('recipeIngSelect').value;
-  const qty = parseFloat(document.getElementById('recipeQty').value);
-  const errEl = document.getElementById('recipeFormErr');
-  errEl.style.display = 'none';
+  const dishId = document.getElementById('dishRecipeSelect').value;
+  const ingredientId = document.getElementById('recipeIngredientSelect').value;
+  const qty = parseFloat(document.getElementById('recipeQtyInput').value);
 
-  if(!dishId) { errEl.textContent = 'Avval taomni tanlang'; errEl.style.display = 'block'; return; }
-  if(!ingredientId) { errEl.textContent = 'Masalliqni tanlang'; errEl.style.display = 'block'; return; }
-  if(!qty || qty <= 0) { errEl.textContent = "Miqdorni to'g'ri kiriting"; errEl.style.display = 'block'; return; }
+  if(!dishId) { showToast('Avval taomni tanlang', 'error'); return; }
+  if(!ingredientId) { showToast('Masalliqni tanlang', 'error'); return; }
+  if(!qty || qty <= 0) { showToast("Miqdorni to'g'ri kiriting", 'error'); return; }
 
   DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
   const item = DB.menuItems.find(m => String(m.id) === String(dishId));
@@ -853,8 +928,7 @@ function addRecipeIngredient() {
   showToast('Retseptga qo\'shildi');
 }
 
-function removeRecipeIngredient(ingredientId) {
-  const dishId = document.getElementById('recipeDishSelect').value;
+function removeRecipeIngredient(dishId, ingredientId) {
   if(!dishId) return;
   DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
   const item = DB.menuItems.find(m => String(m.id) === String(dishId));
@@ -863,6 +937,23 @@ function removeRecipeIngredient(ingredientId) {
   DB.save('menuItems');
   loadDishRecipe();
   showToast('Retseptdan olib tashlandi');
+}
+
+function updateRecipeQty(dishId, ingredientId, newQty) {
+  const qty = parseFloat(newQty) || 0;
+  if(qty <= 0) { showToast('Miqdor 0 dan katta bo\'lishi kerak', 'error'); return; }
+  
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  const item = DB.menuItems.find(m => String(m.id) === String(dishId));
+  if(!item || !Array.isArray(item.recipe)) return;
+  
+  const recipe = item.recipe.find(r => String(r.ingredientId) === String(ingredientId));
+  if(recipe) {
+    recipe.qty = qty;
+    DB.save('menuItems');
+    loadDishRecipe();
+    showToast('Retsept yangilandi');
+  }
 }
 
 // ============================================================
