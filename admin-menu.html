@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel – Mingchinor Kompleks</title>
 <link rel="stylesheet" href="admin-menu.css">
+<script src="connection-guard.js"></script>
 </head>
 <body>
 
@@ -403,8 +404,42 @@
       </div>
     </section>
 
-    <!-- ===== PAYMENT MODAL (to'lov turi tanlash) ===== -->
-    <div id="paymentModal" class="modal-overlay" style="display:none" onclick="if(event.target===this) closePaymentModal()">
+    <!-- ===== QUICK ORDER MODAL (Kassa'da stol ustiga double-click) ===== -->
+    <div id="quickOrderModal" class="modal-overlay" style="display:none" onclick="if(event.target===this) closeQuickOrder()">
+      <div class="modal-box" style="max-width:600px">
+        <div class="modal-header">
+          <h2>🍽️ <span id="quickOrderTableName">Stol</span> — Taom Qo'shish</h2>
+          <button class="btn-close" onclick="closeQuickOrder()">✕</button>
+        </div>
+        <div class="modal-body">
+          <!-- Kategoriyalar filteri -->
+          <div style="margin-bottom:16px;display:flex;gap:6px;flex-wrap:wrap">
+            <button class="cat-filter-btn active" data-quick-cat="all" onclick="filterQuickOrderMenu('all')">Barchasi</button>
+            <button class="cat-filter-btn" data-quick-cat="first" onclick="filterQuickOrderMenu('first')">Birinchi</button>
+            <button class="cat-filter-btn" data-quick-cat="second" onclick="filterQuickOrderMenu('second')">Ikkinchi</button>
+            <button class="cat-filter-btn" data-quick-cat="beverage" onclick="filterQuickOrderMenu('beverage')">Ichimlik</button>
+            <button class="cat-filter-btn" data-quick-cat="dessert" onclick="filterQuickOrderMenu('dessert')">Shirinlik</button>
+          </div>
+
+          <!-- Taomlar gridi -->
+          <div id="quickOrderGrid" class="menu-grid" style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px"></div>
+
+          <!-- Hozirgi zakaz ro'yxati -->
+          <div style="background:var(--bg-alt);padding:12px;border-radius:8px;margin-bottom:16px">
+            <h4>Zakaz (hozirgi):</h4>
+            <div id="quickOrderItems" style="max-height:150px;overflow-y:auto"></div>
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:14px">
+              <span>Jami:</span>
+              <strong id="quickOrderTotal">0 so'm</strong>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeQuickOrder()">Bekor</button>
+          <button class="btn-primary" onclick="confirmQuickOrder()">✅ Tasdiqla</button>
+        </div>
+      </div>
+    </div>
       <div class="modal-box" style="max-width:500px">
         <div class="modal-header">
           <h2>💰 To'lov Turi</h2>

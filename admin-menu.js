@@ -974,10 +974,10 @@ function loadKassa() {
   const panel = document.getElementById('kassaChecksPanel');
   if(!grid) return;
   
-  // Har bir stol uchun unga tegishli "kassa" yoki "paid" statusidagi cheklar soni
+  // Har bir stol uchun unga tegishli barcha relevant cheklar soni (kassa, paid, open)
   const tableChecks = {};
   DB.tables.forEach(t => {
-    tableChecks[t.id] = DB.checks.filter(c => c.tableId === t.id && (c.status === 'kassa' || c.status === 'paid'));
+    tableChecks[t.id] = DB.checks.filter(c => c.tableId === t.id && (c.status === 'kassa' || c.status === 'paid' || c.status === 'open'));
   });
 
   updateKassaBadge();
@@ -987,12 +987,23 @@ function loadKassa() {
     const chks = tableChecks[table.id] || [];
     const card = document.createElement('div');
     card.className = 'table-card';
+    
+    // Single click: Show checks
     card.onclick = () => selectTableForKassa(table.id, chks);
+    
+    // Double click: Open quick order menu
+    card.ondblclick = (e) => {
+      e.stopPropagation();
+      openQuickOrderModal(table.id);
+    };
+    
     card.innerHTML = `
       <div class="table-number">${table.id}</div>
-      <div class="table-status">${table.status === 'busy' ? 'Mashg\'ul' : 'Bo\'sh'}</div>
+      <div class="table-status">${table.status === 'busy' ? '🟢 Mashg\'ul' : '⚪ Bo\'sh'}</div>
       <div class="table-count">${chks.length} chek</div>
+      <small style="margin-top:4px;color:var(--text-dim);font-size:11px">2x click: Taom qo'shish</small>
     `;
+    
     grid.appendChild(card);
   });
 }
@@ -1018,35 +1029,59 @@ function selectTableForKassa(tableId, checks) {
     return;
   }
   
-  checks.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  // Qo'shish mumkin: barcha checks (kassa, paid, open status'ga ega)
+  const allTableChecks = DB.checks.filter(c => c.tableId === tableId && (c.status === 'kassa' || c.status === 'paid' || c.status === 'open'));
+  
+  allTableChecks.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   list.innerHTML = '';
   
-  checks.forEach(chk => {
+  allTableChecks.forEach(chk => {
     const div = document.createElement('div');
     div.className = 'kassa-card';
     const ts = new Date(chk.createdAt);
     const tsStr = ts.toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit'});
-    const statusBadge = chk.status === 'kassa' 
-      ? '<span style="color:var(--warn);font-size:12px;font-weight:700">To\'lov kutilmoqda 🕒</span>'
-      : '<span style="color:var(--accent);font-size:12px;font-weight:700">To\'langan ✓</span>';
+    
+    // Status badge
+    let statusBadge = '';
+    if(chk.status === 'kassa') {
+      statusBadge = '<span style="color:var(--warn);font-size:12px;font-weight:700">To\'lov kutilmoqda 🕒</span>';
+    } else if(chk.status === 'paid') {
+      statusBadge = '<span style="color:var(--accent);font-size:12px;font-weight:700">To\'langan ✓</span>';
+    } else if(chk.status === 'open') {
+      statusBadge = '<span style="color:#f39c12;font-size:12px;font-weight:700">Tayyorlash kutilmoqda 👨‍🍳</span>';
+    }
+    
+    const totalPrice = (chk.items || []).reduce((sum, i) => sum + (i.price * i.qty), 0);
     
     div.innerHTML = `
       <div class="kassa-card-head">
         <div>
-          <h3>${chk.tableName} &nbsp; ${statusBadge}</h3>
-          <p>${tsStr} · ${chk.guestCount} kishi · ${chk.waiterName}</p>
+          <h3>${chk.tableName || 'Stol ' + chk.tableId} &nbsp; ${statusBadge}</h3>
+          <p>${tsStr} · ${chk.guestCount || '—'} kishi · ${chk.waiterName || chk.createdBy || 'System'}</p>
         </div>
       </div>
       <div class="kassa-check-items">
         ${(chk.items || []).map(i => `<div class="check-item-row">• ${i.name} x${i.qty} = ${formatPrice(i.price * i.qty)} so'm</div>`).join('')}
       </div>
       <div class="kassa-check-total">
-        Jami: <strong>${formatPrice(chk.totalPrice)} so'm</strong>
+        Jami: <strong>${formatPrice(totalPrice)} so'm</strong>
       </div>
+      ${chk.status === 'open' ? `<button class="btn-secondary" onclick="moveCheckToKassa(${chk.id})" style="width:100%;margin-top:10px">⬆️ Kassa'ga Yuborish</button>` : ''}
       ${chk.status === 'kassa' ? `<button class="btn-primary" onclick="openPaymentModal(${chk.id})" style="width:100%;margin-top:10px">💰 To'lov Qabul Qilish</button>` : ''}
     `;
     list.appendChild(div);
   });
+}
+
+function moveCheckToKassa(checkId) {
+  DB.checks = JSON.parse(localStorage.getItem('mc_checks') || '[]');
+  const chk = DB.checks.find(c => c.id === checkId);
+  if(!chk) return;
+  
+  chk.status = 'kassa';
+  DB.save('checks');
+  loadKassa();
+  showToast('Chek Kassa bo\'limiga yuborildi');
 }
 
 function kassaDeselectTable() {
@@ -1054,6 +1089,157 @@ function kassaDeselectTable() {
   document.querySelectorAll('.table-card').forEach(c => c.classList.remove('active'));
   currentKassaTableId = null;
 }
+
+// ===== QUICK ORDER MODAL (Kassa double-click) =====
+let quickOrderTableId = null;
+let quickOrderItems = [];
+
+function openQuickOrderModal(tableId) {
+  quickOrderTableId = tableId;
+  quickOrderItems = [];
+  
+  const modal = document.getElementById('quickOrderModal');
+  const title = document.getElementById('quickOrderTableName');
+  title.textContent = `Stol ${tableId}`;
+  
+  modal.style.display = 'flex';
+  
+  filterQuickOrderMenu('all');
+}
+
+function closeQuickOrder() {
+  document.getElementById('quickOrderModal').style.display = 'none';
+  quickOrderTableId = null;
+  quickOrderItems = [];
+}
+
+function filterQuickOrderMenu(category) {
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  const grid = document.getElementById('quickOrderGrid');
+  
+  // Update active button
+  document.querySelectorAll('[data-quick-cat]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.quickCat === category);
+  });
+  
+  let items = DB.menuItems.filter(x => !x.deleted);
+  if(category !== 'all') {
+    items = items.filter(x => {
+      const cat = x.category || '';
+      return cat.toLowerCase().includes(category.toLowerCase());
+    });
+  }
+  
+  grid.innerHTML = items.map(item => {
+    return `
+      <div class="menu-item-card" onclick="addToQuickOrder(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.selling_price})">
+        <h5>${item.name}</h5>
+        <div class="price">${item.selling_price} so'm</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function addToQuickOrder(itemId, itemName, price) {
+  // Check if already in list
+  const existing = quickOrderItems.find(x => x.itemId === itemId);
+  if(existing) {
+    existing.qty++;
+  } else {
+    quickOrderItems.push({
+      itemId,
+      itemName,
+      price,
+      qty: 1
+    });
+  }
+  
+  updateQuickOrderDisplay();
+}
+
+function removeFromQuickOrder(itemId) {
+  quickOrderItems = quickOrderItems.filter(x => x.itemId !== itemId);
+  updateQuickOrderDisplay();
+}
+
+function updateQuickOrderDisplay() {
+  const itemsList = document.getElementById('quickOrderItems');
+  const totalEl = document.getElementById('quickOrderTotal');
+  
+  let total = 0;
+  itemsList.innerHTML = quickOrderItems.map(item => {
+    const subtotal = item.price * item.qty;
+    total += subtotal;
+    return `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:600;font-size:13px">${item.itemName}</div>
+          <div style="font-size:12px;color:var(--text-dim)">
+            ${item.qty} x ${item.price} = ${subtotal} so'm
+          </div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn-small" onclick="quickOrderChangeQty(${item.itemId}, -1)">−</button>
+          <button class="btn-small" onclick="quickOrderChangeQty(${item.itemId}, 1)">+</button>
+          <button class="btn-small" onclick="removeFromQuickOrder(${item.itemId})" style="background:var(--danger-dim);color:var(--danger)">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  totalEl.textContent = total.toLocaleString() + ' so\'m';
+}
+
+function quickOrderChangeQty(itemId, delta) {
+  const item = quickOrderItems.find(x => x.itemId === itemId);
+  if(item) {
+    item.qty += delta;
+    if(item.qty <= 0) {
+      removeFromQuickOrder(itemId);
+    } else {
+      updateQuickOrderDisplay();
+    }
+  }
+}
+
+function confirmQuickOrder() {
+  if(quickOrderItems.length === 0) {
+    showToast('Taom tanlang!', 'error');
+    return;
+  }
+  
+  DB.checks = JSON.parse(localStorage.getItem('mc_checks') || '[]');
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  
+  // Yangi chek yaratish
+  const newCheck = {
+    id: DB.nextId(DB.checks),
+    tableId: quickOrderTableId,
+    items: quickOrderItems.map(qoi => {
+      const menuItem = DB.menuItems.find(m => m.id === qoi.itemId) || {};
+      return {
+        id: qoi.itemId,
+        name: qoi.itemName,
+        qty: qoi.qty,
+        price: qoi.price,
+        selling_price: menuItem.selling_price || qoi.price,
+        comment: ''
+      };
+    }),
+    status: 'open', // Ofisant qo'shgan
+    createdAt: new Date().toISOString(),
+    createdBy: currentUser ? currentUser.name : 'System',
+    stockDeducted: false
+  };
+  
+  DB.checks.push(newCheck);
+  DB.save('checks');
+  
+  closeQuickOrder();
+  loadKassa();
+  showToast(`Stol ${quickOrderTableId} uchun ${quickOrderItems.length} ta taom qo'shildi`);
+}
+
 
 let paymentCheckId = null;
 

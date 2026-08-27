@@ -282,6 +282,43 @@ body { font-family: var(--font); background: var(--bg); color: var(--text); min-
   filter: brightness(1.1);
 }
 
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.menu-item-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg1);
+}
+
+.menu-item-card:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  transform: translateY(-2px);
+}
+
+.menu-item-card h5 {
+  font-size: 13px;
+  margin: 0 0 4px 0;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menu-item-card .price {
+  font-size: 12px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
 /* ===== TABLES ADMIN ===== */
 .tables-admin-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
 .table-admin-card {
