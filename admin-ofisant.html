@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ofisant Panel – Mingchinor Kompleks</title>
 <link rel="stylesheet" href="admin-ofisant.css?v=2">
+<script src="connection-guard.js"></script>
 </head>
 <body>
 
@@ -184,20 +185,6 @@
   <div class="add-item-footer" id="atcFooter">
     <button class="btn-back" onclick="cancelDirectCheckAdd()">✕ Bekor</button>
     <button class="btn-confirm" style="flex:2" onclick="saveDirectCheckItems()">✅ Saqlash va chiqarish</button>
-  </div>
-</div>
-
-<!-- ===== DIRECT ADD TO CHECK PANEL ===== -->
-<div id="directAddPanel" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:2000;flex-direction:column;overflow:hidden;font-family:var(--font-body);">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--bg1);border-bottom:1px solid var(--border);">
-    <h3 id="directAddTitle" style="font-family:var(--font-head);font-size:18px;color:var(--text);">Taom qo'shish</h3>
-    <button onclick="closeDirectAdd()" style="width:30px;height:30px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);cursor:pointer;font-size:16px;">✕</button>
-  </div>
-  <div id="directAddCats" style="display:flex;gap:8px;padding:12px 16px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border);flex-shrink:0;"></div>
-  <div id="directAddGrid" style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:12px;"></div>
-  <div style="padding:12px 16px;border-top:1px solid var(--border);background:var(--bg1);display:flex;gap:10px;flex-shrink:0;">
-    <button onclick="closeDirectAdd()" style="flex:1;padding:12px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-weight:700;font-size:14px;cursor:pointer;">✕ Bekor</button>
-    <button onclick="saveDirectAdd()" style="flex:2;padding:12px;background:var(--accent);border:none;border-radius:8px;color:var(--bg);font-weight:700;font-size:14px;cursor:pointer;">✅ Saqlash</button>
   </div>
 </div>
 

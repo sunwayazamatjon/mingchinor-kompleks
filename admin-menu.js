@@ -678,21 +678,28 @@ function saveMenuOrder() {
 // INGREDIENTS (KIRIM MASALLIQLARI)
 // ============================================================
 const ING_UNIT_LABELS = { kg: 'kg', g: 'g', l: 'l', ml: 'ml', dona: 'dona' };
+let activeIngredientCategory = 'all';
+let _ingredientFilterBound = false; // Listener'ni faqat 1 marta bog'lash uchun
 
 function loadIngredientsSection() {
-  renderIngredientsGrid('all');
+  renderIngredientsGrid(activeIngredientCategory);
   loadRecipeDropdowns();
   loadDishRecipe();
-  
-  // Category filter buttons
-  document.querySelectorAll('#ingredientCategoryFilter .cat-filter-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      document.querySelectorAll('#ingredientCategoryFilter .cat-filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const cat = btn.dataset.cat;
-      renderIngredientsGrid(cat);
+  populatePrixodDropdown();
+
+  // Category filter buttons — faqat bir marta bog'laymiz (bo'lim qayta ochilganda
+  // eski listenerlar ustiga qayta qo'shilib ketmasligi uchun)
+  if(!_ingredientFilterBound) {
+    document.querySelectorAll('#ingredientCategoryFilter .cat-filter-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('#ingredientCategoryFilter .cat-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeIngredientCategory = btn.dataset.cat;
+        renderIngredientsGrid(activeIngredientCategory);
+      });
     });
-  });
+    _ingredientFilterBound = true;
+  }
 }
 
 function getIngredientCategory(ing) {
@@ -745,66 +752,97 @@ function renderIngredientsGrid(category = 'all') {
   }).join('');
 }
 
-function addIngredient() {
+// Kategoriyaga tegishli vazn/hajm birligidagi masalliqlarni "Prixod" dropdown'ga to'ldirish
+function populatePrixodDropdown() {
   DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
-  const name = document.getElementById('ingName').value.trim();
-  const unit = document.getElementById('ingUnit').value;
-  const qty = parseFloat(document.getElementById('ingQty').value) || 0;
-  const price = parseInt(document.getElementById('ingPrice').value) || 0;
-  const errEl = document.getElementById('ingFormErr');
+  const sel = document.getElementById('prixodMasalliq');
+  if(!sel) return;
+  const current = sel.value;
+  const items = DB.ingredients.filter(x => !x.deleted);
+
+  sel.innerHTML = '<option value="">– Masalliqni tanlang –</option>' +
+    items.map(ing => `<option value="${ing.id}">${ing.name} (${ING_UNIT_LABELS[ing.unit] || ing.unit})</option>`).join('');
+
+  if(current && items.find(x => String(x.id) === String(current))) sel.value = current;
+}
+
+// "Prixod Qabul Qilish" — mavjud masalliqqa yangi stock qo'shish
+function addPrixod() {
+  const sel = document.getElementById('prixodMasalliq');
+  const errEl = document.getElementById('prixodFormErr');
   errEl.style.display = 'none';
 
-  if(!name) { errEl.textContent = 'Masalliq nomini kiriting'; errEl.style.display = 'block'; return; }
-  if(DB.ingredients.find(x => x.name.toLowerCase() === name.toLowerCase() && !x.deleted)) {
-    errEl.textContent = "Bu nomli masalliq allaqachon mavjud"; errEl.style.display = 'block'; return;
-  }
+  const ingredientId = sel.value;
+  const qty = parseFloat(document.getElementById('prixodQty').value);
+  const price = parseInt(document.getElementById('prixodPrice').value) || 0;
 
-  const ingredient = {
-    id: DB.nextId(DB.ingredients),
-    name, unit, qty, price,
-    deleted: false
-  };
-  DB.ingredients.push(ingredient);
+  if(!ingredientId) { errEl.textContent = 'Masalliqni tanlang'; errEl.style.display = 'block'; return; }
+  if(!qty || qty <= 0) { errEl.textContent = "Miqdorni to'g'ri kiriting"; errEl.style.display = 'block'; return; }
+
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const ing = DB.ingredients.find(x => String(x.id) === String(ingredientId));
+  if(!ing) { errEl.textContent = 'Masalliq topilmadi'; errEl.style.display = 'block'; return; }
+
+  ing.qty = (ing.qty || 0) + qty;
+  if(price > 0) ing.price = price; // Eng oxirgi kirim narxi bilan yangilaymiz
+  DB.save('ingredients');
+
+  // Prixod tarixi (hisobot uchun)
+  DB.prixod = JSON.parse(localStorage.getItem('mc_prixod') || '[]');
+  DB.prixod.push({
+    id: DB.nextId(DB.prixod),
+    ingredientId: ing.id,
+    ingredientName: ing.name,
+    qty, price,
+    date: new Date().toISOString(),
+    by: currentUser ? currentUser.name : 'System'
+  });
+  DB.save('prixod');
+
+  DB.broadcast('ingredients_updated', {});
+
+  document.getElementById('prixodQty').value = '';
+  document.getElementById('prixodPrice').value = '';
+  renderIngredientsGrid(activeIngredientCategory);
+  populatePrixodDropdown();
+  showToast(`"${ing.name}" uchun ${qty} ${ING_UNIT_LABELS[ing.unit] || ing.unit} qabul qilindi`);
+}
+
+// "Donalik Maxsulot" — yangi dona-birlikdagi masalliq/mahsulot yaratish (suv, shirinlik, non)
+function addProduct() {
+  const errEl = document.getElementById('productFormErr');
+  errEl.style.display = 'none';
+
+  const name = document.getElementById('productName').value.trim();
+  const qty = parseFloat(document.getElementById('productQty').value) || 0;
+  const price = parseInt(document.getElementById('productPrice').value) || 0;
+
+  if(!name) { errEl.textContent = 'Maxsulot nomini kiriting'; errEl.style.display = 'block'; return; }
+
+  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
+  const existing = DB.ingredients.find(x => x.name.toLowerCase() === name.toLowerCase() && !x.deleted);
+
+  if(existing) {
+    // Mavjud bo'lsa — stockni oshiramiz (prixod kabi)
+    existing.qty = (existing.qty || 0) + qty;
+    if(price > 0) existing.price = price;
+  } else {
+    DB.ingredients.push({
+      id: DB.nextId(DB.ingredients),
+      name, unit: 'dona', qty, price,
+      deleted: false
+    });
+  }
   DB.save('ingredients');
   DB.broadcast('ingredients_updated', {});
 
-  document.getElementById('ingName').value = '';
-  document.getElementById('ingQty').value = '';
-  document.getElementById('ingPrice').value = '';
-  renderIngredientsTable();
+  document.getElementById('productName').value = '';
+  document.getElementById('productQty').value = '';
+  document.getElementById('productPrice').value = '';
+  renderIngredientsGrid(activeIngredientCategory);
   loadRecipeDropdowns();
+  populatePrixodDropdown();
   showToast(`"${name}" qo'shildi`);
-}
-
-function renderIngredientsTable() {
-  DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
-  const tbody = document.getElementById('ingredientsTableBody');
-  if(!tbody) return;
-
-  const items = DB.ingredients.filter(x => !x.deleted);
-  if(!items.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-dim)">Masalliqlar yo\'q</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = items.map((ing, i) => {
-    const unitLabel = ING_UNIT_LABELS[ing.unit] || ing.unit;
-    const total = (ing.qty || 0) * (ing.price || 0);
-    return `
-      <tr data-id="${ing.id}">
-        <td>${i + 1}</td>
-        <td>${ing.name}</td>
-        <td>${ing.qty} ${unitLabel}</td>
-        <td>${formatPrice(ing.price)} so'm</td>
-        <td>${formatPrice(total)} so'm</td>
-        <td>
-          <div class="actions-cell admin-only">
-            <button class="btn-icon danger" onclick="deleteIngredient('${ing.id}')" title="O'chirish">🗑️</button>
-          </div>
-        </td>
-      </tr>
-    `;
-  }).join('');
 }
 
 function editIngredient(id) {
@@ -821,7 +859,7 @@ function editIngredient(id) {
   ing.qty = qty;
   DB.save('ingredients');
   DB.broadcast('ingredients_updated', {});
-  renderIngredientsGrid('all');
+  renderIngredientsGrid(activeIngredientCategory);
   showToast('Masalliq yangilandi');
 }
 
@@ -833,7 +871,7 @@ function deleteIngredient(id) {
   ing.deleted = true;
   DB.save('ingredients');
   DB.broadcast('ingredients_updated', {});
-  renderIngredientsGrid('all');
+  renderIngredientsGrid(activeIngredientCategory);
   showToast("Masalliq o'chirildi");
 }
 
@@ -842,12 +880,12 @@ function loadRecipeDropdowns() {
   DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
   DB.ingredients = JSON.parse(localStorage.getItem('mc_ingredients') || '[]');
 
-  const dishSel = document.getElementById('recipeDishSelect');
-  const ingSel = document.getElementById('recipeIngSelect');
+  const dishSel = document.getElementById('dishRecipeSelect');
+  const ingSel = document.getElementById('recipeIngredientSelect');
   if(!dishSel || !ingSel) return;
 
   const prevDish = dishSel.value;
-  dishSel.innerHTML = '<option value="">– Taomni tanlang –</option>';
+  dishSel.innerHTML = '<option value="">– Taom tanlang –</option>';
   DB.menuItems.filter(m => !m.deleted).forEach(m => {
     const opt = document.createElement('option');
     opt.value = m.id; opt.textContent = m.name;
@@ -855,15 +893,15 @@ function loadRecipeDropdowns() {
   });
   if(prevDish) dishSel.value = prevDish;
 
-  ingSel.innerHTML = '<option value="">– Masalliqni tanlang –</option>';
+  const prevIng = ingSel.value;
+  ingSel.innerHTML = '<option value="">– Masalliq tanlang –</option>';
   DB.ingredients.filter(x => !x.deleted).forEach(ing => {
     const opt = document.createElement('option');
     opt.value = ing.id;
     opt.textContent = `${ing.name} (${ING_UNIT_LABELS[ing.unit] || ing.unit})`;
     ingSel.appendChild(opt);
   });
-
-  loadDishRecipe();
+  if(prevIng) ingSel.value = prevIng;
 }
 
 function loadDishRecipe() {
@@ -923,7 +961,7 @@ function addRecipeIngredient() {
   }
   DB.save('menuItems');
 
-  document.getElementById('recipeQty').value = '';
+  document.getElementById('recipeQtyInput').value = '';
   loadDishRecipe();
   showToast('Retseptga qo\'shildi');
 }
@@ -1090,21 +1128,25 @@ function kassaDeselectTable() {
   currentKassaTableId = null;
 }
 
-// ===== QUICK ORDER MODAL (Kassa double-click) =====
+// ===== QUICK ORDER MODAL (Kassa'da stol ustiga 2x click — faqat admin-menyuda) =====
 let quickOrderTableId = null;
 let quickOrderItems = [];
+let activeQuickOrderCat = 'all';
 
 function openQuickOrderModal(tableId) {
   quickOrderTableId = tableId;
   quickOrderItems = [];
-  
+  activeQuickOrderCat = 'all';
+
   const modal = document.getElementById('quickOrderModal');
   const title = document.getElementById('quickOrderTableName');
   title.textContent = `Stol ${tableId}`;
-  
+
   modal.style.display = 'flex';
-  
+
+  renderQuickOrderCategories();
   filterQuickOrderMenu('all');
+  updateQuickOrderDisplay();
 }
 
 function closeQuickOrder() {
@@ -1113,26 +1155,41 @@ function closeQuickOrder() {
   quickOrderItems = [];
 }
 
-function filterQuickOrderMenu(category) {
+// Chap panel: haqiqiy menyu kategoriyalarini ko'rsatish (Menyu bo'limida yaratilganlar)
+function renderQuickOrderCategories() {
+  DB.categories = JSON.parse(localStorage.getItem('mc_categories') || '[]');
+  const wrap = document.getElementById('quickOrderCats');
+  if(!wrap) return;
+
+  let html = `<button class="qo-cat-btn ${activeQuickOrderCat==='all'?'active':''}" data-quick-cat="all" onclick="filterQuickOrderMenu('all')">🍽️ Barchasi</button>`;
+  DB.categories.forEach(cat => {
+    html += `<button class="qo-cat-btn ${String(activeQuickOrderCat)===String(cat.id)?'active':''}" data-quick-cat="${cat.id}" onclick="filterQuickOrderMenu('${cat.id}')">${cat.name}</button>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function filterQuickOrderMenu(categoryId) {
+  activeQuickOrderCat = categoryId;
   DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
   const grid = document.getElementById('quickOrderGrid');
-  
-  // Update active button
-  document.querySelectorAll('[data-quick-cat]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.quickCat === category);
+
+  document.querySelectorAll('#quickOrderCats .qo-cat-btn').forEach(btn => {
+    btn.classList.toggle('active', String(btn.dataset.quickCat) === String(categoryId));
   });
-  
+
   let items = DB.menuItems.filter(x => !x.deleted);
-  if(category !== 'all') {
-    items = items.filter(x => {
-      const cat = x.category || '';
-      return cat.toLowerCase().includes(category.toLowerCase());
-    });
+  if(categoryId !== 'all') {
+    items = items.filter(x => String(x.categoryId) === String(categoryId));
   }
-  
+
+  if(!items.length) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:30px;color:var(--text-dim)">Bu kategoriyada taom yo\'q</div>';
+    return;
+  }
+
   grid.innerHTML = items.map(item => {
     return `
-      <div class="menu-item-card" onclick="addToQuickOrder(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.selling_price})">
+      <div class="menu-item-card" onclick="addToQuickOrder(${item.id}, '${item.name.replace(/'/g, "\\'")}', ${item.selling_price}, '${item.categoryId ?? ''}')">
         <h5>${item.name}</h5>
         <div class="price">${item.selling_price} so'm</div>
       </div>
@@ -1140,20 +1197,14 @@ function filterQuickOrderMenu(category) {
   }).join('');
 }
 
-function addToQuickOrder(itemId, itemName, price) {
-  // Check if already in list
+// Taom ustiga bosilganda — hozirgi zakazga qo'shiladi (bosgan sayin qo'shilib boraveradi)
+function addToQuickOrder(itemId, itemName, price, categoryId) {
   const existing = quickOrderItems.find(x => x.itemId === itemId);
   if(existing) {
     existing.qty++;
   } else {
-    quickOrderItems.push({
-      itemId,
-      itemName,
-      price,
-      qty: 1
-    });
+    quickOrderItems.push({ itemId, itemName, price, categoryId: categoryId || null, qty: 1 });
   }
-  
   updateQuickOrderDisplay();
 }
 
@@ -1165,18 +1216,22 @@ function removeFromQuickOrder(itemId) {
 function updateQuickOrderDisplay() {
   const itemsList = document.getElementById('quickOrderItems');
   const totalEl = document.getElementById('quickOrderTotal');
-  
+
+  if(!quickOrderItems.length) {
+    itemsList.innerHTML = '<div style="text-align:center;padding:14px;color:var(--text-dim);font-size:13px">Taom tanlanmagan — yuqoridan tanlang</div>';
+    totalEl.textContent = "0 so'm";
+    return;
+  }
+
   let total = 0;
   itemsList.innerHTML = quickOrderItems.map(item => {
     const subtotal = item.price * item.qty;
     total += subtotal;
     return `
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)">
         <div>
           <div style="font-weight:600;font-size:13px">${item.itemName}</div>
-          <div style="font-size:12px;color:var(--text-dim)">
-            ${item.qty} x ${item.price} = ${subtotal} so'm
-          </div>
+          <div style="font-size:12px;color:var(--text-dim)">${item.qty} x ${formatPrice(item.price)} = ${formatPrice(subtotal)} so'm</div>
         </div>
         <div style="display:flex;gap:4px">
           <button class="btn-small" onclick="quickOrderChangeQty(${item.itemId}, -1)">−</button>
@@ -1186,32 +1241,30 @@ function updateQuickOrderDisplay() {
       </div>
     `;
   }).join('');
-  
-  totalEl.textContent = total.toLocaleString() + ' so\'m';
+
+  totalEl.textContent = formatPrice(total) + " so'm";
 }
 
 function quickOrderChangeQty(itemId, delta) {
   const item = quickOrderItems.find(x => x.itemId === itemId);
   if(item) {
     item.qty += delta;
-    if(item.qty <= 0) {
-      removeFromQuickOrder(itemId);
-    } else {
-      updateQuickOrderDisplay();
-    }
+    if(item.qty <= 0) removeFromQuickOrder(itemId);
+    else updateQuickOrderDisplay();
   }
 }
 
+// "Buyurtma" tugmasi — chek yaratadi VA taomlarni kategoriyasiga qarab tegishli oshxona
+// printerlariga yuboradi. Bu funksiya FAQAT admin-menyuda mavjud (ofisant panelida yo'q).
 function confirmQuickOrder() {
   if(quickOrderItems.length === 0) {
-    showToast('Taom tanlang!', 'error');
+    showToast('Avval taom tanlang!', 'error');
     return;
   }
-  
+
   DB.checks = JSON.parse(localStorage.getItem('mc_checks') || '[]');
   DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
-  
-  // Yangi chek yaratish
+
   const newCheck = {
     id: DB.nextId(DB.checks),
     tableId: quickOrderTableId,
@@ -1223,21 +1276,91 @@ function confirmQuickOrder() {
         qty: qoi.qty,
         price: qoi.price,
         selling_price: menuItem.selling_price || qoi.price,
+        categoryId: qoi.categoryId,
         comment: ''
       };
     }),
-    status: 'open', // Ofisant qo'shgan
+    status: 'open', // Oshxonada tayyorlanmoqda
     createdAt: new Date().toISOString(),
     createdBy: currentUser ? currentUser.name : 'System',
     stockDeducted: false
   };
-  
+
   DB.checks.push(newCheck);
   DB.save('checks');
-  
+
+  // Taomlarni kategoriyasiga (yoki o'zining printerTarget'iga) qarab tegishli
+  // oshxona printeriga yuboramiz
+  sendOrderToKitchens(newCheck);
+
   closeQuickOrder();
   loadKassa();
-  showToast(`Stol ${quickOrderTableId} uchun ${quickOrderItems.length} ta taom qo'shildi`);
+  showToast(`Stol ${quickOrderTableId} uchun buyurtma oshxonaga yuborildi (${quickOrderItems.length} ta taom)`);
+}
+
+// Chekdagi taomlarni printerTarget bo'yicha guruhlab, har bir oshxona printeriga yuboradi
+function sendOrderToKitchens(chk) {
+  DB.menuItems = JSON.parse(localStorage.getItem('mc_menu') || '[]');
+  DB.categories = JSON.parse(localStorage.getItem('mc_categories') || '[]');
+  const ips = JSON.parse(localStorage.getItem('mc_printer_ips') || '{}');
+
+  const groups = {}; // { printerType: [items] }
+  const unbound = [];
+
+  chk.items.forEach(item => {
+    const menuItem = DB.menuItems.find(m => String(m.id) === String(item.id));
+    let boundTo = null;
+
+    if(menuItem && menuItem.printerTarget) {
+      boundTo = menuItem.printerTarget;
+    } else {
+      const cat = DB.categories.find(c => String(c.id) === String(item.categoryId));
+      if(cat && cat.printerTarget) boundTo = cat.printerTarget;
+    }
+
+    if(boundTo) {
+      if(!groups[boundTo]) groups[boundTo] = [];
+      groups[boundTo].push(item);
+    } else {
+      unbound.push(item);
+    }
+  });
+
+  const labels = PRINTER_LABELS || { kassa: 'Kassa', milliy: 'Milliy Taomlar', kabob: 'Kabobxona', baliq: 'Baliqxona' };
+  const tableLabel = `Stol ${chk.tableId}`;
+  const timeStr = new Date().toLocaleTimeString('uz-UZ', {hour:'2-digit', minute:'2-digit'});
+
+  Object.keys(groups).forEach(ptype => {
+    const ip = ips[ptype];
+    if(!ip) {
+      console.warn(`[OSHXONA PRINTER: ${ptype}] IP sozlanmagan!`);
+      showToast(`⚠️ ${labels[ptype] || ptype} printer IP sozlanmagan — Xprinterlar bo'limida kiriting`);
+      return;
+    }
+    const lines = [
+      `*** ${(labels[ptype] || ptype).toUpperCase()} ***`,
+      tableLabel,
+      `Vaqt: ${timeStr}`,
+      `Kim: ${currentUser ? currentUser.name : 'Kassir'}`,
+      '--------------------------------',
+      ...groups[ptype].map(i => `${i.name.padEnd(20,' ')} x${i.qty}`),
+      '--------------------------------'
+    ];
+    const printData = { text: lines.join('\n') };
+    fetch(`${PRINT_BRIDGE_URL}/print?ip=${encodeURIComponent(ip)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(printData)
+    }).catch(e => {
+      console.warn(`[OSHXONA PRINTER ${ptype}] Ulanish xatosi:`, e.message);
+      showToast(`⚠️ ${labels[ptype] || ptype} printerga ulanib bo'lmadi (print-bridge ishga tushganini tekshiring)`);
+    });
+  });
+
+  if(unbound.length) {
+    console.warn('[OSHXONA PRINTER] Printerga bog\'lanmagan taomlar:', unbound.map(i => i.name));
+    showToast(`⚠️ ${unbound.length} ta taom hech qanday printerga bog'lanmagan (Menyu → kategoriya/taomga printer tanlang)`);
+  }
 }
 
 
@@ -1563,16 +1686,114 @@ function simulatePrint(chk) {
 // ============================================================
 // TABLES
 // ============================================================
+// ============================================================
+// STOL KATEGORIYALARI
+// ============================================================
+let activeTableCategoryId = 'all';
+
+function addTableCategory() {
+  const nameInput = document.getElementById('tableCatNameInput');
+  const name = nameInput.value.trim();
+  if(!name) { showToast('Kategoriya nomini kiriting'); return; }
+
+  DB.tableCategories = JSON.parse(localStorage.getItem('mc_table_categories') || '[]');
+  if(DB.tableCategories.find(c => c.name.toLowerCase() === name.toLowerCase())) {
+    showToast('Bu kategoriya mavjud!'); return;
+  }
+  DB.tableCategories.push({ id: DB.nextId(DB.tableCategories), name });
+  DB.save('tableCategories');
+  DB.broadcast('table_categories_updated', {});
+  nameInput.value = '';
+  renderTableCategoryFilter();
+  showToast(`"${name}" kategoriyasi yaratildi`);
+}
+
+function removeTableCategory(id) {
+  if(!confirm("Kategoriyani o'chirasizmi? (Ichidagi stollar o'chirilmaydi, faqat kategoriyasiz qoladi)")) return;
+  DB.tableCategories = JSON.parse(localStorage.getItem('mc_table_categories') || '[]');
+  DB.tableCategories = DB.tableCategories.filter(c => c.id !== id);
+  DB.save('tableCategories');
+
+  // Bu kategoriyadagi stollarni "kategoriyasiz" qilib qo'yamiz
+  DB.tables = JSON.parse(localStorage.getItem('mc_tables') || '[]');
+  DB.tables.forEach(t => { if(t.categoryId === id) t.categoryId = null; });
+  DB.save('tables');
+
+  DB.broadcast('table_categories_updated', {});
+  if(activeTableCategoryId === id) activeTableCategoryId = 'all';
+  renderTableCategoryFilter();
+  showToast("Kategoriya o'chirildi");
+}
+
+function renderTableCategoryFilter() {
+  DB.tableCategories = JSON.parse(localStorage.getItem('mc_table_categories') || '[]');
+  const wrap = document.getElementById('tableCategoryFilter');
+  if(!wrap) return;
+
+  let html = `<button class="cat-filter-btn ${activeTableCategoryId==='all'?'active':''}" data-tcat="all" onclick="selectTableCategory('all')">Barcha stollar</button>`;
+  DB.tableCategories.forEach(cat => {
+    html += `
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="cat-filter-btn ${activeTableCategoryId===cat.id?'active':''}" data-tcat="${cat.id}" onclick="selectTableCategory(${cat.id})" style="flex:1">${cat.name}</button>
+        <button class="btn-small" onclick="removeTableCategory(${cat.id})" title="O'chirish" style="background:var(--danger-dim);color:var(--danger)">🗑️</button>
+      </div>
+    `;
+  });
+  wrap.innerHTML = html;
+  updateTableCatActiveLabel();
+}
+
+function selectTableCategory(catId) {
+  activeTableCategoryId = catId;
+  document.querySelectorAll('#tableCategoryFilter .cat-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', String(btn.dataset.tcat) === String(catId));
+  });
+  updateTableCatActiveLabel();
+  loadTables();
+}
+
+function updateTableCatActiveLabel() {
+  const label = document.getElementById('tableCatActiveLabel');
+  if(!label) return;
+  if(activeTableCategoryId === 'all') {
+    label.textContent = '(Barcha stollar)';
+  } else {
+    DB.tableCategories = JSON.parse(localStorage.getItem('mc_table_categories') || '[]');
+    const cat = DB.tableCategories.find(c => c.id === activeTableCategoryId);
+    label.textContent = cat ? `(${cat.name})` : '';
+  }
+}
+
+// ============================================================
+// STOLLAR
+// ============================================================
 function loadTables() {
   DB.tables = JSON.parse(localStorage.getItem('mc_tables') || '[]');
+  DB.tableCategories = JSON.parse(localStorage.getItem('mc_table_categories') || '[]');
+  renderTableCategoryFilter();
+
   const grid = document.getElementById('tablesGrid');
+  if(!grid) return;
+
+  let list = DB.tables;
+  if(activeTableCategoryId !== 'all') {
+    list = list.filter(t => t.categoryId === activeTableCategoryId);
+  }
+
+  if(!list.length) {
+    grid.innerHTML = '<div class="empty-state"><span>🪑</span><p>Bu kategoriyada stollar yo\'q. Yuqoridan qo\'shing.</p></div>';
+    return;
+  }
+
   grid.innerHTML = '';
-  DB.tables.forEach(table => {
+  list.forEach(table => {
+    const catName = table.categoryId ? (DB.tableCategories.find(c => c.id === table.categoryId)?.name || '') : '';
     const div = document.createElement('div');
     div.className = 'table-admin-card';
     div.innerHTML = `
       <span class="t-icon">${table.status==='busy'?'🔴':'🟢'}</span>
       <span class="t-name">${table.name}</span>
+      ${catName ? `<span style="font-size:11px;color:var(--text-dim)">${catName}</span>` : ''}
       <span class="t-status ${table.status}">${table.status==='busy'?'Band':'Bo\'sh'}</span>
       <div class="table-actions">
         <button class="btn-icon danger" onclick="removeTable(${table.id})" title="O'chirish">🗑️</button>
@@ -1582,16 +1803,57 @@ function loadTables() {
   });
 }
 
-function addTable() {
-  const name = document.getElementById('tableNameInput').value.trim();
-  if(!name) { showToast('Stol nomini kiriting'); return; }
+// Bitta stol qo'shish (eski usul — hozir bulk funksiyasi ichidan chaqiriladi)
+function addTable(name, categoryId) {
   DB.tables = JSON.parse(localStorage.getItem('mc_tables') || '[]');
-  DB.tables.push({ id: DB.nextId(DB.tables), name, status: 'free' });
+  DB.tables.push({ id: DB.nextId(DB.tables), name, status: 'free', categoryId: categoryId || null });
+  DB.save('tables');
+}
+
+// Bir nechta stolni birdaniga qo'shish ("keyin qo'shish" — kategoriya yaratilgach)
+function addTablesBulk() {
+  const countInput = document.getElementById('tableBulkCount');
+  const startInput = document.getElementById('tableBulkStart');
+  const count = parseInt(countInput.value) || 0;
+
+  if(count < 1) { showToast("Nechta stol qo'shishni kiriting", 'error'); return; }
+  if(count > 100) { showToast("Bir martada ko'pi bilan 100 ta stol qo'shish mumkin", 'error'); return; }
+
+  DB.tables = JSON.parse(localStorage.getItem('mc_tables') || '[]');
+  DB.tableCategories = JSON.parse(localStorage.getItem('mc_table_categories') || '[]');
+
+  const categoryId = activeTableCategoryId === 'all' ? null : activeTableCategoryId;
+  const catPrefix = categoryId ? (DB.tableCategories.find(c => c.id === categoryId)?.name || 'Stol') : 'Stol';
+
+  // Boshlanish raqamini aniqlash: kiritilgan bo'lsa o'shandan, aks holda
+  // shu kategoriyadagi eng katta raqamdan keyingisidan boshlaymiz
+  let startNum = parseInt(startInput.value) || null;
+  if(!startNum) {
+    const sameCategoryTables = DB.tables.filter(t => (t.categoryId || null) === categoryId);
+    let maxNum = 0;
+    sameCategoryTables.forEach(t => {
+      const m = t.name.match(/(\d+)\s*$/);
+      if(m) maxNum = Math.max(maxNum, parseInt(m[1]));
+    });
+    startNum = maxNum + 1;
+  }
+
+  let added = 0;
+  for(let i = 0; i < count; i++) {
+    const num = startNum + i;
+    const name = `${catPrefix} ${num}`;
+    // Bir xil nomdagi stol mavjud bo'lsa, o'tkazib yuboramiz
+    if(DB.tables.find(t => t.name.toLowerCase() === name.toLowerCase())) continue;
+    DB.tables.push({ id: DB.nextId(DB.tables), name, status: 'free', categoryId });
+    added++;
+  }
+
   DB.save('tables');
   DB.broadcast('tables_updated', {});
-  document.getElementById('tableNameInput').value = '';
+  countInput.value = '1';
+  startInput.value = '';
   loadTables();
-  showToast(`"${name}" qo'shildi`);
+  showToast(`${added} ta stol qo'shildi`);
 }
 
 function removeTable(id) {
@@ -1755,7 +2017,12 @@ function setupRealtime() {
       loadReport();
     }
     if(key === 'ingredients' && document.getElementById('sectionIngredients').classList.contains('active')) {
-      renderIngredientsTable();
+      renderIngredientsGrid(activeIngredientCategory);
+      populatePrixodDropdown();
+    }
+    if((key === 'tables' || key === 'tableCategories')) {
+      if(document.getElementById('sectionTables').classList.contains('active')) loadTables();
+      if(isKassaOpen()) loadKassa();
     }
   });
   // localStorage real-time (bir xil qurilmadagi boshqa tablar)

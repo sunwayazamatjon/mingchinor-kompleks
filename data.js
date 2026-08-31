@@ -25,15 +25,18 @@ function _eventsRef() {
 // ---- DEFAULT DATA ----
 const _defaults = {
   categories: [],
+  tableCategories: [],
   menu:        [],
   ingredients: [],
+  prixod: [],
+  products: [],
   tables: [
-    {id:1,name:'Stol 1',status:'free'},
-    {id:2,name:'Stol 2',status:'free'},
-    {id:3,name:'Stol 3',status:'free'},
-    {id:4,name:'Stol 4',status:'free'},
-    {id:5,name:'Stol 5',status:'free'},
-    {id:6,name:'Stol 6',status:'free'},
+    {id:1,name:'Stol 1',status:'free',categoryId:null},
+    {id:2,name:'Stol 2',status:'free',categoryId:null},
+    {id:3,name:'Stol 3',status:'free',categoryId:null},
+    {id:4,name:'Stol 4',status:'free',categoryId:null},
+    {id:5,name:'Stol 5',status:'free',categoryId:null},
+    {id:6,name:'Stol 6',status:'free',categoryId:null},
   ],
   waiters: [
     {id:1,name:'Admin',surname:'Admin',login:'admin',password:'admin123',role:'admin',servedToday:0}
@@ -45,34 +48,43 @@ const _defaults = {
 
 // localStorage key mapping
 const _lsKey = {
-  categories:  'mc_categories',
-  menuItems:   'mc_menu',
-  ingredients: 'mc_ingredients',
-  tables:      'mc_tables',
-  waiters:     'mc_waiters',
-  orders:      'mc_orders',
-  checks:      'mc_checks',
-  waiterCalls: 'mc_waiter_calls'
+  categories:      'mc_categories',
+  tableCategories: 'mc_table_categories',
+  menuItems:       'mc_menu',
+  ingredients:     'mc_ingredients',
+  prixod:          'mc_prixod',
+  products:        'mc_products',
+  tables:          'mc_tables',
+  waiters:         'mc_waiters',
+  orders:          'mc_orders',
+  checks:          'mc_checks',
+  waiterCalls:     'mc_waiter_calls'
 };
 
 // DB key ↔ Firestore doc id mapping
 const _fsKey = {
-  categories:  'categories',
-  menuItems:   'menu',
-  ingredients: 'ingredients',
-  tables:      'tables',
-  waiters:     'waiters',
-  orders:      'orders',
-  checks:      'checks',
-  waiterCalls: 'waiterCalls'
+  categories:      'categories',
+  tableCategories: 'tableCategories',
+  menuItems:       'menu',
+  ingredients:     'ingredients',
+  prixod:          'prixod',
+  products:        'products',
+  tables:          'tables',
+  waiters:         'waiters',
+  orders:          'orders',
+  checks:          'checks',
+  waiterCalls:     'waiterCalls'
 };
 
 // ---- DB OBJECT ----
 const DB = {
   // In-memory cache (localStorage fallback initially)
   categories:  JSON.parse(localStorage.getItem('mc_categories')  || '[]'),
+  tableCategories: JSON.parse(localStorage.getItem('mc_table_categories') || '[]'),
   menuItems:   JSON.parse(localStorage.getItem('mc_menu')         || '[]'),
   ingredients: JSON.parse(localStorage.getItem('mc_ingredients')  || '[]'),
+  prixod: JSON.parse(localStorage.getItem('mc_prixod') || '[]'),
+  products: JSON.parse(localStorage.getItem('mc_products') || '[]'),
   tables:      JSON.parse(localStorage.getItem('mc_tables')       || JSON.stringify(_defaults.tables)),
   waiters:     JSON.parse(localStorage.getItem('mc_waiters')      || JSON.stringify(_defaults.waiters)),
   orders:      JSON.parse(localStorage.getItem('mc_orders')       || '[]'),
@@ -145,16 +157,19 @@ const DB = {
 
 // ---- FIRESTORE DAN YUKLASH ----
 async function _loadFromFirestore() {
-  const keys = ['categories', 'menu', 'ingredients', 'tables', 'waiters', 'orders', 'checks', 'waiterCalls'];
+  const keys = ['categories', 'tableCategories', 'menu', 'ingredients', 'prixod', 'products', 'tables', 'waiters', 'orders', 'checks', 'waiterCalls'];
   const dbMap = {
-    categories:  'categories',
-    menu:        'menuItems',
-    ingredients: 'ingredients',
-    tables:      'tables',
-    waiters:     'waiters',
-    orders:      'orders',
-    checks:      'checks',
-    waiterCalls: 'waiterCalls'
+    categories:      'categories',
+    tableCategories: 'tableCategories',
+    menu:            'menuItems',
+    ingredients:     'ingredients',
+    prixod:          'prixod',
+    products:        'products',
+    tables:          'tables',
+    waiters:         'waiters',
+    orders:          'orders',
+    checks:          'checks',
+    waiterCalls:     'waiterCalls'
   };
 
   try {
@@ -184,13 +199,17 @@ async function _loadFromFirestore() {
 // ---- REAL-TIME TINGLOVCHILAR (onSnapshot) ----
 function _setupListeners() {
   const watch = {
-    categories:  'categories',
-    menu:        'menuItems',
-    ingredients: 'ingredients',
-    tables:      'tables',
-    orders:      'orders',
-    checks:      'checks',
-    waiterCalls: 'waiterCalls'
+    categories:      'categories',
+    tableCategories: 'tableCategories',
+    menu:            'menuItems',
+    ingredients:     'ingredients',
+    prixod:          'prixod',
+    products:        'products',
+    tables:          'tables',
+    waiters:         'waiters',
+    orders:          'orders',
+    checks:          'checks',
+    waiterCalls:     'waiterCalls'
   };
 
   Object.entries(watch).forEach(([fsDocId, dbKey]) => {
